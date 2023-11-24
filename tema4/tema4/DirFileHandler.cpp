@@ -199,3 +199,90 @@ wstring DirFileHandler::ConvertToWString(LPCSTR str) {
     return wideStr;
 }
 
+
+/**
+* Method responsible for creating a mapping file to specific zones
+*
+* @return non-zero value in case of success; zero otherwise and closes all handles
+*/
+DWORD DirFileHandler::createMemoryMapping()
+{
+
+    this->hMapShelves = CreateFileMapping(
+        INVALID_HANDLE_VALUE,
+        NULL,
+        PAGE_READWRITE,
+        0,
+        this->MAPPING_MEMORY_SIZE,
+        this->marketShelves
+    );
+
+    if (this->hMapShelves == NULL) {
+        return FALSE;
+    }
+
+    this->hMapValability = CreateFileMapping(
+        INVALID_HANDLE_VALUE,
+        NULL,
+        PAGE_READWRITE,
+        0,
+        this->MAPPING_MEMORY_SIZE,
+        this->marketValability
+    );
+
+    if (this->hMapValability == NULL) {
+        CloseHandle(this->hMapShelves);
+        return FALSE;
+    }
+
+
+    this->hMapPrices = CreateFileMapping(
+        INVALID_HANDLE_VALUE,
+        NULL,
+        PAGE_READWRITE,
+        0,
+        this->MAPPING_MEMORY_SIZE,
+        this->productPrices
+    );
+
+    if (this->hMapPrices == NULL) {
+        CloseHandle(this->hMapShelves);
+        CloseHandle(this->hMapValability);
+        return FALSE;
+    }
+
+
+    return TRUE;
+}
+
+/**
+* Method responsible for closing the memory handles
+*/
+void DirFileHandler::closeMemoryHandles()
+{
+    CloseHandle(hMapShelves);
+    CloseHandle(hMapValability);
+    CloseHandle(hMapPrices);
+}
+
+/**
+* Method responsible for reading the result provided by the child processes after finishing and 
+* setting content variable accordingly;
+*/
+DWORD DirFileHandler::readResult()
+{
+    return 1;
+}
+
+/**
+* Method responsible for getting the path to correct executable
+* 
+*/
+LPCSTR DirFileHandler::getPathToExecutable(DWORD executable) {
+    switch (executable)
+    {
+    case DONATE_EXE: return this->PATH_TO_DONATE_EXE;
+    case SOLD_EXE: return this->PATH_TO_SOLD_EXE;
+    default: return this->PATH_TO_DEPOSIT_EXE;
+    }
+}

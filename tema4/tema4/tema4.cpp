@@ -193,7 +193,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case ID_RUN_MANAGEMENT:
                 hEdit = GetDlgItem(hWnd, ID_TEXT_AREA);
-                SetWindowText(hEdit, "Running Management Process ...");
+                SetWindowText(hEdit, "Running Management Process ...\r\t");
 
                 if (!manager.startManagement(dirFHandler))
                 {

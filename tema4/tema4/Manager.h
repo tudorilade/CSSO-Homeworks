@@ -10,5 +10,6 @@ private:
 public:
 	DWORD startManagement(DirFileHandler&);
 	wstring getError();
+	BOOL execute(DirFileHandler&);
 };
 
