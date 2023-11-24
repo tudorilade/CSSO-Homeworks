@@ -160,6 +160,17 @@ BOOL DirFileHandler::createFile(LPCSTR path) {
         return this->creationOfFileAndDirs(path, GetLastError());
     }
 
+    DWORD bytesWritten;
+    LPCSTR bufferToWrite = "0";
+    if (!WriteFile(fileHandler, bufferToWrite, strlen(bufferToWrite), &bytesWritten, NULL))
+    {   
+        // Initialize the files with 0
+        wstring widePath = ConvertToWString(path);
+        this->lastError = L"Couldn't write to " + widePath + L". Error code: " + to_wstring(GetLastError()) + L"\r\n";
+        return FALSE;
+
+    }
+
     CloseHandle(fileHandler);
 
     return TRUE;
