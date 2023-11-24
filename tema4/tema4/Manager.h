@@ -4,8 +4,11 @@
 
 class Manager
 {
+private:
+	wstring lastError;
 
 public:
-	void startManagement(DirFileHandler&);
+	DWORD startManagement(DirFileHandler&);
+	wstring getError();
 };
 

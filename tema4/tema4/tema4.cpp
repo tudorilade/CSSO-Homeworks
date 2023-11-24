@@ -195,7 +195,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 hEdit = GetDlgItem(hWnd, ID_TEXT_AREA);
                 SetWindowText(hEdit, "Running Management Process ...");
 
-                manager.startManagement(dirFHandler);
+                if (!manager.startManagement(dirFHandler))
+                {
+                    SetWindowTextW(hEdit, manager.getError().c_str());
+                    break;
+                }
 
                 // when startManagement ends, it means that the child processes have finished;
 
