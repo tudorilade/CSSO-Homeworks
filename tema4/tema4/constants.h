@@ -7,9 +7,10 @@
 #define FINISHED_DONATION_EVENT "finishedDonationEvent"
 #define FINISHED_SOLD_EVENT "finishedSoldEvent"
 #define FINISHED_DEPOSIT_EVENT "finishedDepoEvent"
+#define FIRST_DAY_EVENT "firstDayEvent"
 
 #define MASTER_EVENT "masterEvent"
 #define TIME_TABLE_EVENT "timeTableEvent"
-#define marketShelves "MarketShelves";
-#define marketValability "MarketValability";
-#define productPrices "ProductPrices";
+#define marketShelves "MarketShelves"
+#define marketValability "MarketValability"
+#define productPrices "ProductPrices"
