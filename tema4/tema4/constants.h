@@ -10,3 +10,6 @@
 
 #define MASTER_EVENT "masterEvent"
 #define TIME_TABLE_EVENT "timeTableEvent"
+#define marketShelves "MarketShelves"
+#define marketValability "MarketValability"
+#define productPrices "ProductPrices"
