@@ -66,6 +66,11 @@ BOOL Manager::execute(DirFileHandler& handler) {
         handler.getPathToExecutable(DONATE_EXE)
     };
 
+    // 1. Create MUTEX for sync the access to memory mapping
+    
+    // 2. 
+
+
     for (int i = 0; i < 3; ++i) {
         ZeroMemory(&si[i], sizeof(si[i]));
         ZeroMemory(&pi[i], sizeof(pi[i]));
