@@ -127,7 +127,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="constants.h" />
     <ClInclude Include="DirFileHandler.h" />
+    <ClInclude Include="FileManipulation.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Manager.h" />
     <ClInclude Include="Resource.h" />
@@ -136,6 +138,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DirFileHandler.cpp" />
+    <ClCompile Include="FileManipulation.cpp" />
     <ClCompile Include="Manager.cpp" />
     <ClCompile Include="tema4.cpp" />
   </ItemGroup>

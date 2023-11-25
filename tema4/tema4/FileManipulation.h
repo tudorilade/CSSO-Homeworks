@@ -1,7 +1,10 @@
 #pragma once
 #include <Windows.h>
-#include <iostream>
+#include <wchar.h>
 #include <string.h>
+#include <iostream>
+#include <sstream>
+#include <stdlib.h>
 
 
 using namespace std;
@@ -34,6 +37,10 @@ public:
 	void setHandle(DWORD, HANDLE);
 	LPCSTR getPathFor(DWORD);
 	DWORD createOrOpenFiles(DWORD);
+	DWORD openIfExists(DWORD);
 	DWORD writeToFile(DWORD, string);
+	wstring processErrorFile(DWORD);
+	wstring processSuccessFile();
+	wstring readFromFile(DWORD);
 	void closeHandle(DWORD);
 };

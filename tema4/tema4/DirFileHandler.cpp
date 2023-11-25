@@ -9,10 +9,10 @@ DWORD DirFileHandler::setPathDir(wstring path, DWORD typeOfDir)
 	switch (typeOfDir)
 	{
 	case DEPOSIT_DIR:
-		this->pathToDeposit = path;
+		this->pathToDeposit = path + L"\\*";
 		return 1;
 	case SOLD_DIR:
-		this->pathToSold = path;
+		this->pathToSold = path + L"\\*";
 		return 1;
 	default:
 		return 0;
@@ -32,13 +32,15 @@ wstring DirFileHandler::getPathDir(DWORD typeOfDir) {
 */
 wstring DirFileHandler::getContentForConsole()
 {
-	wstringstream ss;
 
-	ss << L"Content for console ... " << L"\r\n";
-	ss << this->pathToDeposit << L"\r\n";
-	ss << this->pathToSold << L"\r\n";
+    FileManipulation fHandler = FileManipulation();
 
-	return ss.str();
+    if (fHandler.openIfExists(ERRORS_FILE) == 2)
+    {
+        return fHandler.readFromFile(ERRORS_FILE);
+    }
+
+	return fHandler.readFromFile(DONATION_FILE);
 }
 
 /**
@@ -214,7 +216,7 @@ DWORD DirFileHandler::createMemoryMapping()
         PAGE_READWRITE,
         0,
         this->MAPPING_MEMORY_SIZE,
-        this->marketShelves
+        marketShelves
     );
 
     if (this->hMapShelves == NULL) {
@@ -227,7 +229,7 @@ DWORD DirFileHandler::createMemoryMapping()
         PAGE_READWRITE,
         0,
         this->MAPPING_MEMORY_SIZE,
-        this->marketValability
+        marketValability
     );
 
     if (this->hMapValability == NULL) {
@@ -242,7 +244,7 @@ DWORD DirFileHandler::createMemoryMapping()
         PAGE_READWRITE,
         0,
         this->MAPPING_MEMORY_SIZE,
-        this->productPrices
+        productPrices
     );
 
     if (this->hMapPrices == NULL) {
@@ -266,15 +268,6 @@ void DirFileHandler::closeMemoryHandles()
 }
 
 /**
-* Method responsible for reading the result provided by the child processes after finishing and 
-* setting content variable accordingly;
-*/
-DWORD DirFileHandler::readResult()
-{
-    return 1;
-}
-
-/**
 * Method responsible for getting the path to correct executable
 * 
 */
@@ -285,4 +278,16 @@ LPCSTR DirFileHandler::getPathToExecutable(DWORD executable) {
     case SOLD_EXE: return this->PATH_TO_SOLD_EXE;
     default: return this->PATH_TO_DEPOSIT_EXE;
     }
+}
+
+/**
+* Formats a CLI argument using a path to executable
+*/
+wstring DirFileHandler::getCLIArguments(LPCSTR pathToExe)
+{
+    wstring cmdLineArgs = L"\"" + ConvertToWString(pathToExe) + L"\" \"" +
+        getPathDir(DEPOSIT_DIR) + L"\" \"" +
+        getPathDir(SOLD_DIR) + L"\"";
+
+    return cmdLineArgs;
 }

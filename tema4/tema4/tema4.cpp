@@ -154,7 +154,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
             case ID_SELECT_DEPOSIT:
                 // Set the DEPOSIT dir path accordingly
-
                 hEdit = GetDlgItem(hWnd, ID_TEXT_AREA);
                 memset(folderPath, MAX_PATH, 0);
                 if (SUCCEEDED(SelectFolder(hWnd, folderPath, MAX_PATH))) {
@@ -162,7 +161,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     path += folderPath;
                     if (dirFHandler.setPathDir(path, DEPOSIT_DIR)) {
                         wstring pathMessage = L"The path ";
-                        pathMessage += folderPath;
+                        pathMessage += dirFHandler.getPathDir(DEPOSIT_DIR);
                         pathMessage += L" was successfully set";
                         SetWindowTextW(hEdit, pathMessage.c_str());
                     }
@@ -174,14 +173,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case ID_SELECT_SOLD:
                 // Set the SOLD dir path accordingly
-
                 hEdit = GetDlgItem(hWnd, ID_TEXT_AREA);
 
                 memset(folderPath, MAX_PATH, 0);
                 if (SUCCEEDED(SelectFolder(hWnd, folderPath, MAX_PATH))) {
                     if (dirFHandler.setPathDir(folderPath, SOLD_DIR)) {
                         wstring pathMessage = L"The path ";
-                        pathMessage += folderPath;
+                        pathMessage += dirFHandler.getPathDir(SOLD_DIR);
                         pathMessage += L" was successfully set";
                         SetWindowTextW(hEdit, pathMessage.c_str());
                     }

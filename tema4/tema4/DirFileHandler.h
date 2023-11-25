@@ -4,7 +4,9 @@
 #include <string.h>
 #include <iostream>
 #include <sstream>
-
+#include <stdlib.h>
+#include "constants.h"
+#include "FileManipulation.h"
 
 
 #define DEPOSIT_DIR 1
@@ -34,10 +36,6 @@ private:
 	LPCSTR PATH_TO_SOLD_EXE = "";
 	LPCSTR PATH_TO_DEPOSIT_EXE = "";
 
-	LPCSTR marketShelves = "MarketShelves";
-	LPCSTR marketValability = "MarketValability";
-	LPCSTR productPrices = "ProductPrices";
-
 	HANDLE hMapShelves = NULL;
 	HANDLE hMapValability = NULL;
 	HANDLE hMapPrices = NULL;
@@ -59,6 +57,7 @@ public:
 	DWORD setUpDirAndFiles();
 	wstring getPathDir(DWORD);
 	wstring getContentForConsole();
+	wstring getCLIArguments(LPCSTR);
 	wstring getLastError();
 	BOOL recursiveCreateDirectory(LPCSTR);
 	BOOL creationOfFileAndDirs(LPCSTR, DWORD);
