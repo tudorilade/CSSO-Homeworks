@@ -82,19 +82,18 @@ int Deposit::handleMappedFiles(
             " ce are o valabilitate de " + std::to_string(productInfo.getExpiresIn())
             + " zile si un pret de " + std::to_string(productInfo.getProductPrice()) + "\r\n";
 
-        if (this->writeToFile(LOGS_FILE, logMsg) == 0) {
+        if (this->appendToFile(LOGS_FILE, logMsg) == 0) {
             return 0;
         }
             
     }
     else {
-
+        this->createOrOpenFiles(ERRORS_FILE);
         string errorMsg = "S-a încercat adaugarea produsului " + std::to_string(productInfo.getIdProduct())
             + " pe raftul " + std::to_string(productInfo.getShelveId())
             + " care este deja ocupat de " + to_string(shelvesArray[productInfo.getShelveId()]) + "\n";
-        if (this->writeToFile(ERRORS_FILE, errorMsg) == 0) {
-            return 0;
-        }
+        this->appendToFile(ERRORS_FILE, errorMsg);
+        this->closeHandle(ERRORS_FILE);
     }
     return 1;
 
@@ -104,9 +103,6 @@ int Deposit::handleMappedFiles(
 * Method responsible for processing a file
 */
 int Deposit::proccessFile(LPCSTR firstFilePath) {
-
-    if (this->createOrOpenFiles(ERRORS_FILE) == 0)
-        return 0;
        
     std::stringstream ss;
 
@@ -121,8 +117,7 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
     
     if (hFile == INVALID_HANDLE_VALUE) {
         // Failed to open the file
-        ss << "Error opening file: " << firstFilePath << ". Error code: " << std::to_string(GetLastError()) << std::endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "Deposit " << "Error opening file: " << firstFilePath << ". Error code: " << std::to_string(GetLastError()) << std::endl;
         return 0;
     }
     std::vector<ProductInfo> FirstFileProducts = this->processLines(hFile);
@@ -130,23 +125,20 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
     //open the memory mapped files
     HANDLE hMarketShelves = getHandleForMappedFile(marketShelves);
     if (hMarketShelves == NULL) {
-        ss << "Error opening MarketShelves Mapped File!" << std::to_string(GetLastError()) << std::endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "Deposit " << "Error opening MarketShelves Mapped File!" << std::to_string(GetLastError()) << std::endl;
         return 0;
     }
     HANDLE hMarketValability = getHandleForMappedFile(marketValability);
     if (hMarketValability == NULL) {
         DWORD error = GetLastError();
-        ss << "Error opening hMarketValability Mapped File!" << std::to_string(GetLastError()) << std::endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "Deposit " << "Error opening hMarketValability Mapped File!" << std::to_string(GetLastError()) << std::endl;
         CloseHandle(hMarketShelves);
         return 0;
     }
     HANDLE hProductPrices = getHandleForMappedFile(productPrices);
     if (hProductPrices == NULL) {
         DWORD error = GetLastError();
-        ss << "Error opening hMarketValability Mapped File!" << std::to_string(GetLastError()) << std::endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "Deposit " << "Error opening hMarketValability Mapped File!" << std::to_string(GetLastError()) << std::endl;
         CloseHandle(hMarketValability);
         CloseHandle(hMarketShelves);
         return 0;
@@ -158,31 +150,25 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
     LPVOID pViewPrices = MapViewOfFile(hProductPrices, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 
     if (pViewShelves == NULL) {
-        ss <<"Error mapping view of file. Error code: " << std::to_string(GetLastError()) << std::endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "Deposit " <<"Error mapping view of file. Error code: " << std::to_string(GetLastError()) << std::endl;
         CloseHandle(hMarketShelves);
         CloseHandle(hMarketValability);
         CloseHandle(hProductPrices);
-        this->closeHandle(ERRORS_FILE);
         return 0;
     }
     if (pViewValability == NULL) {
-        ss << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "Deposit " << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
         CloseHandle(hMarketShelves);
         CloseHandle(hMarketValability);
         CloseHandle(hProductPrices);
-        this->closeHandle(ERRORS_FILE);
         UnmapViewOfFile(pViewShelves);
         return 0;
     }
     if (pViewPrices == NULL) {
-        ss << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "Deposit " << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
         CloseHandle(hMarketShelves);
         CloseHandle(hMarketValability);
         CloseHandle(hProductPrices);
-        this->closeHandle(ERRORS_FILE);
         UnmapViewOfFile(pViewShelves);
         UnmapViewOfFile(pViewValability);
         return 0;
@@ -201,12 +187,7 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
         UnmapViewOfFile(pViewPrices);
         UnmapViewOfFile(pViewShelves);
         UnmapViewOfFile(pViewValability);
-        ss << "Error opening LOGS file. Error code: " << GetLastError() << std::endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
-
-        // closing Logs and Error file
-        this->closeHandle(ERRORS_FILE);
-
+        cerr << "Deposit " << "Error opening LOGS file. Error code: " << GetLastError() << std::endl;
         return 0;
     }
 
@@ -220,11 +201,9 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
             CloseHandle(hProductPrices);
 
             // closing Logs and Error file
-            ss << "Error opening LOGS file. Error code: " << GetLastError() << std::endl;
-            this->writeToFile(ERRORS_FILE, ss.str());
+            cerr << "Deposit " << "Error opening LOGS file. Error code: " << GetLastError() << std::endl;
 
             this->closeHandle(LOGS_FILE);
-            this->closeHandle(ERRORS_FILE);
 
             // unmap view of file
             UnmapViewOfFile(pViewPrices);
@@ -245,7 +224,6 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
 
     // closing Logs and Error file
     this->closeHandle(LOGS_FILE);
-    this->closeHandle(ERRORS_FILE);
 
     // unmap view of file
     UnmapViewOfFile(pViewPrices);

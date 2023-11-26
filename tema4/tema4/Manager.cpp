@@ -152,8 +152,6 @@ BOOL Manager::execute(DirFileHandler& handler) {
 
     BOOL allProcessesCompleted = FALSE;
     while (!allProcessesCompleted) {
-        // make sure that the master event is reset, so child can wait
-        ResetEvent(hMaster);
         // wait for all child processes to signal completion of a file
         WaitForMultipleObjects(3, processingEvents, TRUE, INFINITE);
         for (int i = 0; i < 3; ++i) {
@@ -167,7 +165,7 @@ BOOL Manager::execute(DirFileHandler& handler) {
         else {
             // Allow children to move to the next file if they did not finish
             SetEvent(hMaster);
-
+            ResetEvent(hMaster);
         }
     }
 

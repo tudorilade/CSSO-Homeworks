@@ -1,2 +1,6 @@
-﻿  BaseChildProcesses.cpp
-  DonationsExe.vcxproj -> C:\Users\teomi\Desktop\an3\SEM1\CSSO\CSSO-Homeworks\DonationsExe\x64\Debug\DonationsExe.exe
+﻿  Donations.cpp
+  FileManipulation.cpp
+C:\Users\tudor\CSSO-Homeworks\DonationsExe\DonationsExe\FileManipulation.cpp(128,71): warning C4267: 'argument': conversion from 'size_t' to 'DWORD', possible loss of data
+C:\Users\tudor\CSSO-Homeworks\DonationsExe\DonationsExe\FileManipulation.cpp(148,71): warning C4267: 'argument': conversion from 'size_t' to 'DWORD', possible loss of data
+  Generating Code...
+  DonationsExe.vcxproj -> C:\Users\tudor\CSSO-Homeworks\DonationsExe\x64\Debug\DonationsExe.exe

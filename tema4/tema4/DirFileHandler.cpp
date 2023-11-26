@@ -35,6 +35,7 @@ wstring DirFileHandler::getContentForConsole()
 
     FileManipulation fHandler = FileManipulation();
 
+
     //if (fHandler.openIfExists(ERRORS_FILE) == 2)
     //{
     //    return fHandler.readFromFile(ERRORS_FILE);
@@ -163,8 +164,8 @@ BOOL DirFileHandler::createFile(LPCSTR path) {
     }
 
     DWORD bytesWritten;
-    LPCSTR bufferToWrite = "0";
-    if (!WriteFile(fileHandler, bufferToWrite, strlen(bufferToWrite), &bytesWritten, NULL))
+    DWORD bufferToWrite = 0;
+    if (!WriteFile(fileHandler, &bufferToWrite, sizeof(DWORD), &bytesWritten, NULL))
     {   
         // Initialize the files with 0
         wstring widePath = ConvertToWString(path);

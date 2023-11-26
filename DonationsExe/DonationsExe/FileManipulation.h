@@ -37,4 +37,5 @@ public:
 	DWORD writeToFile(DWORD, string);
 	void closeHandle(DWORD);
 	DWORD appendToFile(DWORD, string);
+	DWORD openExistingFile(DWORD);
 };

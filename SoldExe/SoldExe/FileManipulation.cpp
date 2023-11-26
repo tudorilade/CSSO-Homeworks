@@ -50,15 +50,34 @@ void FileManipulation::setHandle(DWORD fileType, HANDLE handle) {
 * @return non-zero for success; 0 otherwise
 */
 DWORD FileManipulation::createOrOpenFiles(DWORD fileType) {
-	HANDLE fileHandler = CreateFile(
-		this->getPathFor(fileType), // the filename
-		GENERIC_WRITE, // open for write
-		0,
-		NULL,
-		CREATE_ALWAYS, // open file always if exists or not and truncate the content
-		FILE_ATTRIBUTE_NORMAL,
-		NULL
-	);
+	DWORD fileAttr = GetFileAttributes(this->getPathFor(fileType));
+	BOOL fileExists = (fileAttr != INVALID_FILE_ATTRIBUTES && !(fileAttr & FILE_ATTRIBUTE_DIRECTORY));
+
+	HANDLE fileHandler;
+	if (fileExists) {
+		// file exists, open with OPEN_ALWAYS to append data
+		fileHandler = CreateFile(
+			this->getPathFor(fileType),
+			GENERIC_WRITE | GENERIC_READ,
+			0,
+			NULL,
+			OPEN_ALWAYS, // no truncate
+			FILE_ATTRIBUTE_NORMAL,
+			NULL 
+		);
+	}
+	else {
+		// file does not exist, create a new file with CREATE_ALWAYS
+		fileHandler = CreateFile(
+			this->getPathFor(fileType),
+			GENERIC_WRITE | GENERIC_READ,
+			0, 
+			NULL, 
+			CREATE_ALWAYS, 
+			FILE_ATTRIBUTE_NORMAL, 
+			NULL 
+		);
+	}
 
 	if (fileHandler == INVALID_HANDLE_VALUE) {
 		return 0;
@@ -126,4 +145,31 @@ DWORD FileManipulation::appendToFile(DWORD fileType, string buffer) {
 */
 void FileManipulation::closeHandle(DWORD fileType) {
 	CloseHandle(this->getHandle(fileType));
+}
+
+/**
+* Method responsible for creating, opening and setting the handle corresponding to fileType
+*
+* @param pathToFile - path to file
+* @param fileType - the type of file to create (errors.txt, logs.txt etc.)
+* @return non-zero for success; 0 otherwise
+*/
+DWORD FileManipulation::openExistingFile(DWORD fileType) {
+	HANDLE fileHandler = CreateFile(
+		this->getPathFor(fileType), // the filename
+		GENERIC_WRITE, // open for write
+		0,
+		NULL,
+		OPEN_EXISTING, // open file always if exists or not and truncate the content
+		FILE_ATTRIBUTE_NORMAL,
+		NULL
+	);
+
+	if (fileHandler == INVALID_HANDLE_VALUE) {
+		return 0;
+	}
+
+	this->setHandle(fileType, fileHandler);
+
+	return 1;
 }

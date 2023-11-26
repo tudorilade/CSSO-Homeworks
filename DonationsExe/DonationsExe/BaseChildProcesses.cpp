@@ -31,7 +31,7 @@ HANDLE BaseChildProcesses::getHandleForMappedFile(LPCSTR mappedFileName) {
     HANDLE hMap = OpenFileMapping(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, mappedFileName);
 
     if (hMap == NULL) {
-        this->appendToFile(ERRORS_FILE, "Error opening the memory-mapped file.\n");
+        cerr << "Donations " << "Error opening the memory-mapped file. Error code: " << GetLastError();
         //printf("Error opening the memory-mapped file. Error code: %d\n", GetLastError());
         return NULL;
     }
@@ -82,7 +82,8 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
     HANDLE hDonationEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DONATION_EVENT); // for the donation event
     HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
     HANDLE hCriticalError = OpenEvent(EVENT_MODIFY_STATE, FALSE, ABORT_EVENT);
-    
+    HANDLE hFinal = OpenEvent(EVENT_MODIFY_STATE, FALSE, FINISHED_DONATION_EVENT);
+
 
     // 1. return a vector with the name of files
     vector<string> filesInOrder = this->preprocessingFiles(directoryDeposit);
@@ -105,7 +106,7 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         it++;
     }
     else {
-        cout << "donations Astept event!" << endl;
+        cout << "donations " << "Astept event!" << endl;
         Sleep(3000);
         WaitForSingleObject(hEventFirstFile, INFINITE);
     }
@@ -117,7 +118,6 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         string& fileName = *it;
 
         WaitForSingleObject(hMutexCriticalSection, INFINITE);
-        this->createOrOpenFiles(ERRORS_FILE);
         // Critical section
 
      //   cout << fileName << endl;
@@ -127,20 +127,22 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
             SetEvent(hSoldEvent);
             SetEvent(hDepositEvent);
             SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
-            string errMsg = "Error opening the first file to parse aici!";
-            this->appendToFile(ERRORS_FILE, errMsg);
+            std::cerr << "Donations " << "Error opening the first file to parse!" << GetLastError() << std::endl;
+
             //std::cerr << "Error opening the first file to parse aici!" << std::endl;
             ExitProcess(0);
         }
-        this->closeHandle(ERRORS_FILE);
         ReleaseMutex(hMutexCriticalSection);
 
         // signals master that deposit.exe finished processing 1st day
         SetEvent(hDonationEvent);
-        cout << "SOLD Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
+        cout << "SOLD " << "Am terminat al doilea file, acum astept un input ca sa simulez wait!Acesta este file - ul: " << fileName << endl;
         Sleep(3000);
         WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
     }
+
+    cout << "Donations " << "Am TERMINAT" << endl;
+    SetEvent(hFinal);
 }
 
 /**

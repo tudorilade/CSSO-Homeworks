@@ -81,6 +81,7 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
     HANDLE hDonationEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DONATION_EVENT); // for the donation event
     HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
     HANDLE hCriticalError = OpenEvent(EVENT_MODIFY_STATE, FALSE, ABORT_EVENT);
+    HANDLE hFinalEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, FINISHED_SOLD_EVENT);
 
     // 2. return a vector with the name of files
     vector<string> filesInOrder = this->preprocessingFiles(directoryDeposit);
@@ -122,7 +123,7 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
             SetEvent(hSoldEvent);
             SetEvent(hDepositEvent);
             SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
-            cerr << "Error opening the first file to parse!" << endl;
+            cerr << "SOLD " << "Error opening the first file to parse!" << endl;
             ExitProcess(0);
         }
 
@@ -136,6 +137,9 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
         cout << "Am ramas blocat!" << endl;
     }
+
+    cout << "SOLD " << "Am terminat de procesat !" << endl;
+    SetEvent(hFinalEvent);
 }
 
 /**

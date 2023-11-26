@@ -63,8 +63,7 @@ int Sold::proccessFile(LPCSTR firstFilePath)
 
     if (hFile == INVALID_HANDLE_VALUE) {
         // Failed to open the file
-        ss << "Error opening file: " << firstFilePath << ". Error code: " << to_string(GetLastError()) << endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "SOLD " << "Error opening file: " << firstFilePath << ". Error code: " << to_string(GetLastError()) << endl;
         return 0;
     }
     vector<ProductInfo> FirstFileProducts = this->processLines(hFile);
@@ -72,23 +71,20 @@ int Sold::proccessFile(LPCSTR firstFilePath)
     //open the memory mapped files
     HANDLE hMarketShelves = getHandleForMappedFile(marketShelves);
     if (hMarketShelves == NULL) {
-        ss << "Error opening MarketShelves Mapped File!" << to_string(GetLastError()) << endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "SOLD " << "Error opening MarketShelves Mapped File!" << to_string(GetLastError()) << endl;
         return 0;
     }
     HANDLE hMarketValability = getHandleForMappedFile(marketValability);
     if (hMarketValability == NULL) {
         DWORD error = GetLastError();
-        ss << "Error opening hMarketValability Mapped File!" << to_string(GetLastError()) << endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "SOLD "  "Error opening hMarketValability Mapped File!" << to_string(GetLastError()) << endl;
         CloseHandle(hMarketShelves);
         return 0;
     }
     HANDLE hProductPrices = getHandleForMappedFile(productPrices);
     if (hProductPrices == NULL) {
         DWORD error = GetLastError();
-        ss << "Error opening hMarketValability Mapped File!" << to_string(GetLastError()) << endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "SOLD " << "Error opening hMarketValability Mapped File!" << to_string(GetLastError()) << endl;
         CloseHandle(hMarketValability);
         CloseHandle(hMarketShelves);
         return 0;
@@ -100,31 +96,25 @@ int Sold::proccessFile(LPCSTR firstFilePath)
     LPVOID pViewPrices = MapViewOfFile(hProductPrices, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 
     if (pViewShelves == NULL) {
-        ss << "Error mapping view of file. Error code: " << to_string(GetLastError()) << endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "SOLD " << "Error mapping view of file. Error code: " << to_string(GetLastError()) << endl;
         CloseHandle(hMarketShelves);
         CloseHandle(hMarketValability);
         CloseHandle(hProductPrices);
-        this->closeHandle(ERRORS_FILE);
         return 0;
     }
     if (pViewValability == NULL) {
-        ss << "Error mapping view of file. Error code: " << GetLastError() << endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "SOLD " << "Error mapping view of file. Error code: " << GetLastError() << endl;
         CloseHandle(hMarketShelves);
         CloseHandle(hMarketValability);
         CloseHandle(hProductPrices);
-        this->closeHandle(ERRORS_FILE);
         UnmapViewOfFile(pViewShelves);
         return 0;
     }
     if (pViewPrices == NULL) {
-        ss << "Error mapping view of file. Error code: " << GetLastError() << endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "SOLD " << "Error mapping view of file. Error code: " << GetLastError() << endl;
         CloseHandle(hMarketShelves);
         CloseHandle(hMarketValability);
         CloseHandle(hProductPrices);
-        this->closeHandle(ERRORS_FILE);
         UnmapViewOfFile(pViewShelves);
         UnmapViewOfFile(pViewValability);
         return 0;
@@ -143,11 +133,7 @@ int Sold::proccessFile(LPCSTR firstFilePath)
         UnmapViewOfFile(pViewPrices);
         UnmapViewOfFile(pViewShelves);
         UnmapViewOfFile(pViewValability);
-        ss << "Error opening LOGS file. Error code: " << GetLastError() << endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
-
-        // closing Logs and Error file
-        this->closeHandle(ERRORS_FILE);
+        cerr << "SOLD " << "Error opening LOGS file. Error code: " << GetLastError() << endl;
         return 0;
     }
 
@@ -163,12 +149,10 @@ int Sold::proccessFile(LPCSTR firstFilePath)
             CloseHandle(hProductPrices);
 
         // closing Logs and Error file
-        ss << "Error opening LOGS file. Error code: " << GetLastError() << endl;
-            this->writeToFile(ERRORS_FILE, ss.str());
-
+            cerr << "SOLD " << "Error opening handleMappedFiles product. Error code: " << GetLastError() << endl;
+            
             this->closeHandle(LOGS_FILE);
-            this->closeHandle(ERRORS_FILE);
-
+            
         // unmap view of file
             UnmapViewOfFile(pViewPrices);
             UnmapViewOfFile(pViewShelves);
@@ -187,8 +171,7 @@ int Sold::proccessFile(LPCSTR firstFilePath)
 
     //// closing Logs and Error file
     this->closeHandle(LOGS_FILE);
-    this->closeHandle(ERRORS_FILE);
-
+    
     //// unmap view of file
     UnmapViewOfFile(pViewPrices);
     UnmapViewOfFile(pViewShelves);
@@ -196,8 +179,7 @@ int Sold::proccessFile(LPCSTR firstFilePath)
 
     if (!this->writeTotalSales()) {
         // closing Logs and Error file
-        ss << "Error writing to sold file. Error code: " << GetLastError() << endl;
-        this->writeToFile(ERRORS_FILE, ss.str());
+        cerr << "SOLD " << "Error writing to sold file. Error code: " << GetLastError() << endl;
         return 0;
     }
 
@@ -215,9 +197,11 @@ DWORD Sold::handleMappedFiles(LPVOID pViewShelves, LPVOID pViewValability, LPVOI
 
     // Check if shelve_id is valid and the shelf exists
     if (shelves[shelve_id] == 0xFFFFFFFF) {
+        this->createOrOpenFiles(ERRORS_FILE);
         stringstream errorsFile;
         errorsFile << "S-a incercat vanzarea unui produs de pe un raft " << shelve_id << " ce nu contine produs\n";
         this->appendToFile(ERRORS_FILE, errorsFile.str());
+        this->closeHandle(ERRORS_FILE);
         return 0; // Continue processing other lines
     }
 

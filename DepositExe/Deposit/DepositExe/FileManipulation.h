@@ -35,5 +35,6 @@ public:
 	LPCSTR getPathFor(DWORD);
 	DWORD createOrOpenFiles(DWORD);
 	DWORD writeToFile(DWORD, string);
+	DWORD appendToFile(DWORD, string);
 	void closeHandle(DWORD);
 };

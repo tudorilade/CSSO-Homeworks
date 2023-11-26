@@ -81,6 +81,8 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
     HANDLE hDonationEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DONATION_EVENT); // for the donation event
     HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
     HANDLE hCriticalError = OpenEvent(EVENT_MODIFY_STATE, FALSE, ABORT_EVENT);
+    HANDLE hFinal = OpenEvent(EVENT_MODIFY_STATE, FALSE, FINISHED_DEPOSIT_EVENT);
+
 
     // 1. return a vector with the name of files
     vector<string> filesInOrder = this->preprocessingFiles(directoryDeposit);
@@ -95,13 +97,14 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
             SetEvent(hSoldEvent);
             SetEvent(hDepositEvent);
             SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
-            std::cerr << "Error opening the first file to parse!" << std::endl;
+            std::cerr << "DEposit " << "Error opening the first file to parse!" << std::endl;
             ExitProcess(0);
         }
         //set event pentru ca am terminat primul file
         SetEvent(hEventFirstFile); // am anuntat celelalte 2 procese ca s a terminat cu prima zi
         it++;
-        cout<<"am ajuns la first file "<<endl;
+        cout<<"DEPOST " << "am ajuns la first file "<<endl;
+        Sleep(3000);
      }
     // 1. Open the mutex for critical section
 
@@ -118,7 +121,9 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
             SetEvent(hSoldEvent);
             SetEvent(hDepositEvent);
             SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
-            std::cerr << "Error opening the first file to parse!" << std::endl;
+            std::cerr << "Deposit " << "Error opening the first file to parse!" << GetLastError() << std::endl;
+
+            Sleep(7000);
             ExitProcess(0);
         }
 
@@ -127,11 +132,13 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         // signals master that deposit.exe finished processing 1st day
         SetEvent(hDepositEvent);
 
-        cout << "Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
-        Sleep(1000);
+        cout << "Deposit " << "Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
+        Sleep(3000);
         WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
-        cout << "Am ramas blocat!" << endl;
+        cout << "Deposit " << "Am ramas blocat!" << endl;
     }
+    cout << "Deposit " << "Am TERMINAT" << endl;
+    SetEvent(hFinal);
 }
 
 /**
