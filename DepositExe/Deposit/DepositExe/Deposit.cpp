@@ -4,8 +4,8 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+
 bool compareFileNames( std::string& fileName1,  std::string& fileName2) {
-    // Assuming file names are in the format "year.month.day.txt"
     int year1, month1, day1;
     int year2, month2, day2;
 
@@ -208,113 +208,64 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
 }
 
 void Deposit::startProccessing(LPCSTR directoryDeposit) {
-    WIN32_FIND_DATAA fileInfo;
-    HANDLE firstFile = FindFirstFile(directoryDeposit, &fileInfo); //get the first file from the directory with deposit
-    //prelucrez first
+
+    // 1. Open Mutex, Events and Timer
+    HANDLE hMutexCriticalSection = OpenMutex(SYNCHRONIZE, FALSE, CRITICAL_SECTION_MUTEX);
+    HANDLE hMasterEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, MASTER_EVENT); // for the master event
+    HANDLE hDepositEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DEPOSIT_EVENT); // for the deposit event
+    HANDLE hSoldEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, SOLD_EVENT); // for the sold event
+    HANDLE hDonationEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DONATION_EVENT); // for the donation event
+    HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
+    HANDLE hDepositEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DEPOSIT_EVENT); // for the deposit event
+    HANDLE hCriticalError = OpenEvent(EVENT_MODIFY_STATE, FALSE, ABORT_EVENT);
+
+
+    // 1. return a vector with the name of files
     vector<string> filesInOrder = this->preprocessingFiles(directoryDeposit);
 
     if (!filesInOrder.empty()) { // process the first file
-         auto& firstFileName = filesInOrder.front();
-         cout << firstFileName << endl;
-         if (this->proccessFile(constructPath(directoryDeposit, firstFileName.c_str())) == 0)
-         {
-             std::cerr << "Error opening the first file to parse!" << std::endl;
-             return;
-         }
-         //set event pentru ca am terminat primul file
-         HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
-         SetEvent(hEventFirstFile); // am anuntat celelalte 2 procese ca s a terminat cu prima zi
+        string& firstFileName = filesInOrder.front();
+        cout << firstFileName << endl;
+        if (this->proccessFile(constructPath(directoryDeposit, firstFileName.c_str())) == 0)
+        {
+            SetEvent(hCriticalError);
+            SetEvent(hSoldEvent);
+            SetEvent(hDepositEvent);
+            SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
+            std::cerr << "Error opening the first file to parse!" << std::endl;
+            ExitProcess(0);
+        }
+        //set event pentru ca am terminat primul file
+        SetEvent(hEventFirstFile); // am anuntat celelalte 2 procese ca s a terminat cu prima zi
     }
 
+    // 1. Open the mutex for critical section
+
+
     for (auto it = filesInOrder.begin() + 1; it != filesInOrder.end(); ++it) {
-        auto& fileName = *it;
-        HANDLE hMutexCriticalSection = OpenMutex(SYNCHRONIZE, FALSE, CRITICAL_SECTION_MUTEX);
-        /*if (hMutexCriticalSection == NULL) {
-            std::cerr << "Error opening the mutex. Error code: " << GetLastError() << std::endl;
-            return;
+        string& fileName = *it;
 
-        }*/
         WaitForSingleObject(hMutexCriticalSection, INFINITE);
+        // Critical section
 
-        cout << fileName << endl;
+     //   cout << fileName << endl;
         if (this->proccessFile(constructPath(directoryDeposit, fileName.c_str())) == 0)
         {
+            SetEvent(hCriticalError);
+            SetEvent(hSoldEvent);
+            SetEvent(hDepositEvent);
+            SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
             std::cerr << "Error opening the first file to parse!" << std::endl;
-            return;
+            ExitProcess(0);
         }
-
 
         ReleaseMutex(hMutexCriticalSection);
 
+        // signals master that deposit.exe finished processing 1st day
+        SetEvent(hDepositEvent);
 
-        cout << "Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " <<fileName << endl;
-        int a;
-        cin >> a;
-        //HANDLE hEventMaster = OpenEvent(EVENT_MODIFY_STATE, FALSE, MASTER_EVENT); // for the master event
-        //WaitForSingleObject(hEventMaster, INFINITE); //every process is syncronized here waiting for the others to finish execution
+        cout << "Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
+        WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
         cout << "Am ramas blocat!" << endl;
     }
-
-
-
-    /*if (firstFile == INVALID_HANDLE_VALUE) {
-        cout << "Error opening directory aicisa. Error code: " << GetLastError() << endl;
-        return;
-    }
-    else {
-        do {
-            if (strcmp(fileInfo.cFileName, ".") == 0) {
-                k++;
-            }
-            else if (strcmp(fileInfo.cFileName, "..") == 0) { // ignore . and .. directories
-                k++;
-            }
-            else if (strcmp(fileInfo.cFileName, "..") != 0 && strcmp(fileInfo.cFileName, ".") != 0 && k == 3) { //use the next file
-                k++;
-                cout << directoryDeposit << " " << fileInfo.cFileName << endl;
-                if (this->proccessFile(constructPath(directoryDeposit, fileInfo.cFileName)) == 0 )
-                {
-                    std::cerr << "Error opening the first file to parse!" << std::endl;
-                    return;
-                }
-                //set event pentru ca am terminat primul file
-                HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
-                SetEvent(hEventFirstFile); // am anuntat celelalte 2 procese ca s a terminat cu prima zi
-            }
-            else if (k > 3) {
-                //here add the mutex
-                HANDLE hMutexCriticalSection = OpenMutex(SYNCHRONIZE, FALSE, CRITICAL_SECTION_MUTEX);
-                
-                WaitForSingleObject(hMutexCriticalSection, INFINITE);
-
-                cout << directoryDeposit << " " << fileInfo.cFileName << endl;
-                if (this->proccessFile(constructPath(directoryDeposit, fileInfo.cFileName)) == 0)
-                {
-                    std::cerr << "Error opening the first file to parse!" << std::endl;
-                    return;
-                }
-
-
-                ReleaseMutex(hMutexCriticalSection);
-
-
-                cout << "Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: "<< constructPath(directoryDeposit, fileInfo.cFileName) <<endl;
-                int a;
-                cin >> a;
-                //HANDLE hEventMaster = OpenEvent(EVENT_MODIFY_STATE, FALSE, MASTER_EVENT); // for the master event
-                //WaitForSingleObject(hEventMaster, INFINITE); //every process is syncronized here waiting for the others to finish execution
-                cout << "Am ramas blocat!" << endl;
-            }
-
-        } while (FindNextFile(firstFile, &fileInfo));
-        if (!FindClose(firstFile)) {
-            printf("Error at FindClose.\nError code: %d\n", GetLastError());
-            return;
-        }
-    }*/
-    
-
-    //CloseHandle(firstFile);
-
-
 }
