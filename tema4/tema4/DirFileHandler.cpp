@@ -35,10 +35,10 @@ wstring DirFileHandler::getContentForConsole()
 
     FileManipulation fHandler = FileManipulation();
 
-    if (fHandler.openIfExists(ERRORS_FILE) == 2)
-    {
-        return fHandler.readFromFile(ERRORS_FILE);
-    }
+    //if (fHandler.openIfExists(ERRORS_FILE) == 2)
+    //{
+    //    return fHandler.readFromFile(ERRORS_FILE);
+    //}
 
 	return fHandler.readFromFile(DONATION_FILE);
 }
@@ -237,7 +237,6 @@ DWORD DirFileHandler::createMemoryMapping()
         return FALSE;
     }
 
-
     this->hMapPrices = CreateFileMapping(
         INVALID_HANDLE_VALUE,
         NULL,
@@ -253,6 +252,29 @@ DWORD DirFileHandler::createMemoryMapping()
         return FALSE;
     }
 
+    LPDWORD bMapShelves = (LPDWORD)MapViewOfFile(this->hMapShelves, FILE_MAP_WRITE, 0, 0, this->MAPPING_MEMORY_SIZE);
+    if (bMapShelves == NULL) {
+        CloseHandle(this->hMapShelves);
+        return FALSE;
+    }
+    memset(bMapShelves, 0xFF, this->MAPPING_MEMORY_SIZE);
+
+    LPDWORD bMapValability = (LPDWORD)MapViewOfFile(this->hMapValability, FILE_MAP_WRITE, 0, 0, this->MAPPING_MEMORY_SIZE);
+    if (bMapValability == NULL) {
+        CloseHandle(this->hMapShelves);
+        CloseHandle(this->hMapValability);
+        return FALSE;
+    }
+    memset(bMapValability, 0xFF, this->MAPPING_MEMORY_SIZE);
+
+    LPDWORD bMapPrices = (LPDWORD)MapViewOfFile(this->hMapPrices, FILE_MAP_WRITE, 0, 0, this->MAPPING_MEMORY_SIZE);
+    if (bMapPrices == NULL) {
+        CloseHandle(this->hMapShelves);
+        CloseHandle(this->hMapValability);
+        CloseHandle(this->hMapPrices);
+        return FALSE;
+    }
+    memset(bMapPrices, 0xFF, this->MAPPING_MEMORY_SIZE);
 
     return TRUE;
 }

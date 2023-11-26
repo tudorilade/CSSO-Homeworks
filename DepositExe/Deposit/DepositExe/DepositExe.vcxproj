@@ -132,7 +132,6 @@
     <ClCompile Include="DepositExe.cpp" />
     <ClCompile Include="FileManipulation.cpp" />
     <ClCompile Include="ProductInfo.cpp" />
-    <ClCompile Include="SoldExe.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseChildProcesses.h" />

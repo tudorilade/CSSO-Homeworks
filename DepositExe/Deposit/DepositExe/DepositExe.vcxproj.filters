@@ -30,9 +30,6 @@
     <ClCompile Include="BaseChildProcesses.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SoldExe.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Deposit.h">

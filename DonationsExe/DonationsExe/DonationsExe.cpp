@@ -3,11 +3,11 @@
 #include "Donations.h"
 #include <iostream>
 
-int main()
+int main(int argc, char* argv[])
 {
     Donations donations = Donations();
 
-    donations.startProccessing("F:\\CSSO-tema\\CSSO-Homeworks-main\\CSSO-Homeworks-main\\deposit\\*");
+    donations.startProccessing(argv[2]);
 
     return 0;
 }
