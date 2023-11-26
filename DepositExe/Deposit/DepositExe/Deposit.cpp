@@ -4,6 +4,9 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <string>
+
+
 
 bool compareFileNames( std::string& fileName1,  std::string& fileName2) {
     int year1, month1, day1;
@@ -140,10 +143,74 @@ std::vector<ProductInfo> Deposit::processLines(HANDLE fileToParse)
 
 }
 
+int Deposit::handleMappedFiles(HANDLE hMarketShelves,HANDLE hMarketValability, HANDLE hProductPrices, ProductInfo productInfo) {
+    LPVOID pViewShelves = MapViewOfFile(hMarketShelves, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+    LPVOID pViewValability = MapViewOfFile(hMarketValability, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+    LPVOID pViewPrices = MapViewOfFile(hProductPrices, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 
+
+    if (pViewShelves == NULL) {
+        std::cerr << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
+        return 0;
+    }
+    if (pViewValability == NULL) {
+        std::cerr << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
+        return 0;
+    }
+    if (pViewPrices == NULL) {
+        std::cerr << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
+        return 0;
+    }
+
+
+    DWORD* shelvesArray = static_cast<DWORD*>(pViewShelves);
+    if (shelvesArray[productInfo.getShelveId()] == 0xFFFFFFFF) {
+        shelvesArray[productInfo.getShelveId()] = productInfo.getIdProduct();
+        DWORD* valabilityArray = static_cast<DWORD*>(pViewValability);
+        DWORD* pricesArray = static_cast<DWORD*>(pViewPrices);
+
+        valabilityArray[productInfo.getIdProduct()] = productInfo.getExpiresIn();
+        pricesArray[productInfo.getIdProduct()] = productInfo.getProductPrice();
+        
+        if (this->createOrOpenFiles(LOGS_FILE) == 0) {
+            return 0;
+        }
+        string logMsg = "Am adaugat pe raftul" + std::to_string(productInfo.getShelveId())
+            + " produsul " + std::to_string(productInfo.getIdProduct()) +
+            " ce are o valabilitate de " + std::to_string(productInfo.getExpiresIn())
+            + " zile si un pret de " + std::to_string(productInfo.getProductPrice());
+
+        if (this->writeToFile(LOGS_FILE, logMsg) == 0) {
+            this->closeHandle(LOGS_FILE);
+            return 0;
+        }
+            
+
+        this->closeHandle(LOGS_FILE);
+
+    }
+    else {
+        if (this->createOrOpenFiles(ERRORS_FILE) == 0)
+            return 0;
+        string errorMsg = "S-a încercat adaugarea produsului " + std::to_string(productInfo.getIdProduct())
+            + " pe raftul " + std::to_string(productInfo.getShelveId())
+            + " care este deja ocupat de " + to_string(shelvesArray[productInfo.getShelveId()]);
+        if (this->writeToFile(ERRORS_FILE, errorMsg) == 0) {
+            this->closeHandle(ERRORS_FILE);
+            return 0;
+        }
+
+        this->closeHandle(ERRORS_FILE);
+    }
+    UnmapViewOfFile(pViewPrices);
+    UnmapViewOfFile(pViewShelves);
+    UnmapViewOfFile(pViewValability);
+    return 1;
+
+}
 
 int Deposit::proccessFile(LPCSTR firstFilePath) {
-    HANDLE firstFile = CreateFile(
+    HANDLE hFile = CreateFile(
         firstFilePath, 
         GENERIC_READ, 
         0, 
@@ -152,25 +219,16 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
         FILE_ATTRIBUTE_NORMAL,
         NULL);
     
-    if (firstFile == INVALID_HANDLE_VALUE) {
+    if (hFile == INVALID_HANDLE_VALUE) {
         // Failed to open the file
         DWORD error = GetLastError();
         std::cerr << "Error opening file: " << firstFilePath << ". Error code: " << error << std::endl;
         return 0;
     }
-    //HANDLE hMarketShelves = getHandleForMappedFile(marketShelves);
-   // HANDLE hMarketValability = getHandleForMappedFile(marketValability);
-   // HANDLE hProductPrices = getHandleForMappedFile(productPrices);
-    /*if (this->CheckForErrors(hMarketShelves, hMarketValability, hProductPrices) == -1) { //error at opening
-        CloseHandle(hMarketShelves);
-        CloseHandle(hMarketValability);
-        CloseHandle(hProductPrices);
-        return -1;
-    }*/
-    std::vector<ProductInfo> FirstFileProducts = this->processLines(firstFile);
+    std::vector<ProductInfo> FirstFileProducts = this->processLines(hFile);
 
     //open the memory mapped files
-    /*HANDLE hMarketShelves = getHandleForMappedFile(marketShelves);
+    HANDLE hMarketShelves = getHandleForMappedFile(marketShelves);
     if (hMarketShelves == NULL) {
         DWORD error = GetLastError();
         std::cerr << "Error opening MarketShelves Mapped File!" << error << std::endl;
@@ -190,20 +248,19 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
         CloseHandle(hMarketValability);
         CloseHandle(hMarketShelves);
         return 0;
-    }*/
-
-    /*for (auto& product : FirstFileProducts) {
-        std::cout << "Product: " << product.getIdProduct() << ", " << product.getExpiresIn() << ", "
-            << product.getShelveId() << ", " << product.getProductPrice() << std::endl;
-    }*/
-    //to add to the memory mapped files
+    }
 
 
+
+    for (auto& product : FirstFileProducts) { //add each product to the memory mapped files
+        if (this->handleMappedFiles(hMarketShelves, hMarketValability, hProductPrices, product) == 0)
+            ExitProcess(0);
+    }
     //close handles
-    CloseHandle(firstFile);
-    //CloseHandle(hMarketShelves);
-    //CloseHandle(hMarketValability);
-    //CloseHandle(hProductPrices);
+    CloseHandle(hFile);
+    CloseHandle(hMarketShelves);
+    CloseHandle(hMarketValability);
+    CloseHandle(hProductPrices);
     return 1;
 }
 
@@ -268,67 +325,4 @@ void Deposit::startProccessing(LPCSTR directoryDeposit) {
         WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
         cout << "Am ramas blocat!" << endl;
     }
-}
-
-
-    /*if (firstFile == INVALID_HANDLE_VALUE) {
-        cout << "Error opening directory aicisa. Error code: " << GetLastError() << endl;
-        return;
-    }
-    else {
-        do {
-            if (strcmp(fileInfo.cFileName, ".") == 0) {
-                k++;
-            }
-            else if (strcmp(fileInfo.cFileName, "..") == 0) { // ignore . and .. directories
-                k++;
-            }
-            else if (strcmp(fileInfo.cFileName, "..") != 0 && strcmp(fileInfo.cFileName, ".") != 0 && k == 3) { //use the next file
-                k++;
-                cout << directoryDeposit << " " << fileInfo.cFileName << endl;
-                if (this->proccessFile(constructPath(directoryDeposit, fileInfo.cFileName)) == 0 )
-                {
-                    std::cerr << "Error opening the first file to parse!" << std::endl;
-                    return;
-                }
-                //set event pentru ca am terminat primul file
-                HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
-                SetEvent(hEventFirstFile); // am anuntat celelalte 2 procese ca s a terminat cu prima zi
-            }
-            else if (k > 3) {
-                //here add the mutex
-                HANDLE hMutexCriticalSection = OpenMutex(SYNCHRONIZE, FALSE, CRITICAL_SECTION_MUTEX);
-                
-                WaitForSingleObject(hMutexCriticalSection, INFINITE);
-
-                cout << directoryDeposit << " " << fileInfo.cFileName << endl;
-                if (this->proccessFile(constructPath(directoryDeposit, fileInfo.cFileName)) == 0)
-                {
-                    std::cerr << "Error opening the first file to parse!" << std::endl;
-                    return;
-                }
-
-
-                ReleaseMutex(hMutexCriticalSection);
-
-
-                cout << "Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: "<< constructPath(directoryDeposit, fileInfo.cFileName) <<endl;
-                int a;
-                cin >> a;
-                //HANDLE hEventMaster = OpenEvent(EVENT_MODIFY_STATE, FALSE, MASTER_EVENT); // for the master event
-                //WaitForSingleObject(hEventMaster, INFINITE); //every process is syncronized here waiting for the others to finish execution
-                cout << "Am ramas blocat!" << endl;
-            }
-
-        } while (FindNextFile(firstFile, &fileInfo));
-        if (!FindClose(firstFile)) {
-            printf("Error at FindClose.\nError code: %d\n", GetLastError());
-            return;
-        }
-    }*/
-    
-
-    //CloseHandle(firstFile);
-
-
 }

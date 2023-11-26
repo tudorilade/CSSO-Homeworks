@@ -17,5 +17,6 @@ public:
     vector<ProductInfo> processLines(HANDLE);
     ProductInfo processLineAndGetProduct(const char*);
     vector<string> preprocessingFiles(LPCSTR);
+    int handleMappedFiles(HANDLE, HANDLE, HANDLE, ProductInfo);
 
 };
