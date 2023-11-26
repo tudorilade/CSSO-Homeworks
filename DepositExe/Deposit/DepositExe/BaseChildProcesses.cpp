@@ -101,8 +101,8 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         //set event pentru ca am terminat primul file
         SetEvent(hEventFirstFile); // am anuntat celelalte 2 procese ca s a terminat cu prima zi
         it++;
+        cout<<"am ajuns la first file "<<endl;
      }
-
     // 1. Open the mutex for critical section
 
     for (; it != filesInOrder.end(); ++it) {
@@ -128,6 +128,7 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         SetEvent(hDepositEvent);
 
         cout << "Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
+        Sleep(1000);
         WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
         cout << "Am ramas blocat!" << endl;
     }

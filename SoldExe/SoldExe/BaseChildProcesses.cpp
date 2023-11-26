@@ -103,6 +103,8 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         it++;
      }
     else {
+        cout << "Sold Astept event!" << endl;
+        Sleep(3000);
         WaitForSingleObject(hEventFirstFile, INFINITE);
     }
 
@@ -128,8 +130,9 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
 
         // signals master that deposit.exe finished processing 1st day
         SetEvent(hDepositEvent);
-
-        cout << "Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
+        
+        cout << "SOLD Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
+        Sleep(3000);
         WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
         cout << "Am ramas blocat!" << endl;
     }

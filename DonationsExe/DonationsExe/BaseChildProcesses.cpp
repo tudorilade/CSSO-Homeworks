@@ -82,8 +82,7 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
     HANDLE hDonationEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DONATION_EVENT); // for the donation event
     HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
     HANDLE hCriticalError = OpenEvent(EVENT_MODIFY_STATE, FALSE, ABORT_EVENT);
-    if (this->createOrOpenFiles(ERRORS_FILE) == 0)
-        return;
+    
 
     // 1. return a vector with the name of files
     vector<string> filesInOrder = this->preprocessingFiles(directoryDeposit);
@@ -106,6 +105,8 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         it++;
     }
     else {
+        cout << "donations Astept event!" << endl;
+        Sleep(3000);
         WaitForSingleObject(hEventFirstFile, INFINITE);
     }
 
@@ -116,6 +117,7 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         string& fileName = *it;
 
         WaitForSingleObject(hMutexCriticalSection, INFINITE);
+        this->createOrOpenFiles(ERRORS_FILE);
         // Critical section
 
      //   cout << fileName << endl;
@@ -130,12 +132,13 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
             //std::cerr << "Error opening the first file to parse aici!" << std::endl;
             ExitProcess(0);
         }
-
+        this->closeHandle(ERRORS_FILE);
         ReleaseMutex(hMutexCriticalSection);
 
         // signals master that deposit.exe finished processing 1st day
         SetEvent(hDonationEvent);
-
+        cout << "SOLD Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
+        Sleep(3000);
         WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
     }
 }

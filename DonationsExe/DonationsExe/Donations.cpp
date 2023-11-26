@@ -5,7 +5,8 @@ ProductInfo Donations::processLineAndGetProduct(const char* line) {
 /*
 Process the memory mapped files to calculate the donations
 */
-int Donations::proccessFile(LPCSTR filePath) {    
+int Donations::proccessFile(LPCSTR filePath) {
+
     std::stringstream ss;
     HANDLE hMarketShelves = getHandleForMappedFile(marketShelves);
     if (hMarketShelves == NULL) {

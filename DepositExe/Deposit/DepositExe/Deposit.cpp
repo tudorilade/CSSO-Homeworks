@@ -80,7 +80,7 @@ int Deposit::handleMappedFiles(
         string logMsg = "Am adaugat pe raftul" + std::to_string(productInfo.getShelveId())
             + " produsul " + std::to_string(productInfo.getIdProduct()) +
             " ce are o valabilitate de " + std::to_string(productInfo.getExpiresIn())
-            + " zile si un pret de " + std::to_string(productInfo.getProductPrice());
+            + " zile si un pret de " + std::to_string(productInfo.getProductPrice()) + "\r\n";
 
         if (this->writeToFile(LOGS_FILE, logMsg) == 0) {
             return 0;
@@ -91,7 +91,7 @@ int Deposit::handleMappedFiles(
 
         string errorMsg = "S-a încercat adaugarea produsului " + std::to_string(productInfo.getIdProduct())
             + " pe raftul " + std::to_string(productInfo.getShelveId())
-            + " care este deja ocupat de " + to_string(shelvesArray[productInfo.getShelveId()]);
+            + " care este deja ocupat de " + to_string(shelvesArray[productInfo.getShelveId()]) + "\n";
         if (this->writeToFile(ERRORS_FILE, errorMsg) == 0) {
             return 0;
         }

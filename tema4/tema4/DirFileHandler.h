@@ -32,9 +32,9 @@ private:
 	// 
 	// Here you should provide the write paths from your machines to correct executable that needs to be started
 
-	LPCSTR PATH_TO_DONATE_EXE = "C:\\Users\\tudor\\CSSO-Homeworks\\DonationsExe\\x64\\Debug\\DonationsExe.exe";
-	LPCSTR PATH_TO_SOLD_EXE = "C:\\Users\\tudor\\CSSO-Homeworks\\SoldExe\\x64\\Debug\\SoldExe.exe";
-	LPCSTR PATH_TO_DEPOSIT_EXE = "C:\\Users\\tudor\\CSSO-Homeworks\\DepositExe\\Deposit\\x64\\Debug\\DepositExe.exe";
+	LPCSTR PATH_TO_DONATE_EXE = "C:\\Users\\teomi\\Desktop\\an3\\SEM1\\CSSO\\CSSO-Homeworks\\DonationsExe\\x64\\Debug\\DonationsExe.exe";
+	LPCSTR PATH_TO_SOLD_EXE = "C:\\Users\\teomi\\Desktop\\an3\\SEM1\\CSSO\\CSSO-Homeworks\\SoldExe\\x64\\Debug\\SoldExe.exe";
+	LPCSTR PATH_TO_DEPOSIT_EXE = "C:\\Users\\teomi\\Desktop\\an3\\SEM1\\CSSO\\CSSO-Homeworks\\DepositExe\\Deposit\\x64\\Debug\\DepositExe.exe";
 
 	HANDLE hMapShelves = NULL;
 	HANDLE hMapValability = NULL;
