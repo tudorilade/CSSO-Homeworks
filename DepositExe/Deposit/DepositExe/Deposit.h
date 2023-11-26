@@ -4,16 +4,18 @@ using namespace std;
 #include<windows.h>
 #include<vector>
 #include "ProductInfo.h"
+#include "FileManipulation.h"
 
-class Deposit {
+
+class Deposit : FileManipulation{
 
 public:
     Deposit() {};
 
     void startProccessing(LPCSTR);
-    int CheckForErrors(HANDLE, HANDLE, HANDLE);
-    int proccessFirstFile(LPCSTR);
+    int proccessFile(LPCSTR);
     vector<ProductInfo> processLines(HANDLE);
     ProductInfo processLineAndGetProduct(const char*);
+    vector<string> preprocessingFiles(LPCSTR);
 
 };
