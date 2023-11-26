@@ -1,96 +1,10 @@
 #include "Deposit.h"
-#include <stdio.h>
-#include "../../../tema4/tema4/constants.h"
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <string>
 
 
 
-bool compareFileNames( std::string& fileName1,  std::string& fileName2) {
-    int year1, month1, day1;
-    int year2, month2, day2;
-
-    if (sscanf_s(fileName1.c_str(), "%d.%d.%d", &year1, &month1, &day1) != 3) {
-        std::cerr << "Error parsing date from file name: " << fileName1 << std::endl;
-        return false;
-    }
-
-    if (sscanf_s(fileName2.c_str(), "%d.%d.%d", &year2, &month2, &day2) != 3) {
-        std::cerr << "Error parsing date from file name: " << fileName2 << std::endl;
-        return false;
-    }
-
-    // Compare dates
-    if (year1 != year2) {
-        return year1 < year2;
-    }
-    if (month1 != month2) {
-        return month1 < month2;
-    }
-    return day1 < day2;
-}
-
-HANDLE getHandleForMappedFile(LPCSTR mappedFileName) {
-    HANDLE hMap = OpenFileMapping(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, mappedFileName);
-
-    if (hMap == NULL) {
-        printf("Error opening the memory-mapped file. Error code: %d\n", GetLastError());
-        return NULL;
-    }
-    else {
-        return hMap;
-    }
-}
-
-char* constructPath(const char* directory, const char* file) { //construct the full path of the file
-    size_t dirLength = strlen(directory);
-    size_t fileLength = strlen(file);
-
-    char* pathToFile = (char*)malloc(dirLength + fileLength + 1);
-    if (pathToFile == NULL) {
-        return NULL;
-    }
-    if (strcpy_s(pathToFile, dirLength + fileLength + 1, directory) != 0) {
-        free(pathToFile);
-        return NULL;
-    }
-    pathToFile[dirLength - 1] = '\0';
-    // Use strcat_s to concatenate the file
-    if (strcat_s(pathToFile, dirLength + fileLength + 1, file) != 0) {
-        free(pathToFile);
-        return NULL;
-    }
-
-    return pathToFile;
-}
-
-std::vector<string> Deposit::preprocessingFiles(LPCSTR directoryPath) {
-    WIN32_FIND_DATAA fileInfo;
-    vector<string> fileNames;
-    HANDLE firstFile = FindFirstFile(directoryPath, &fileInfo);
-    if (firstFile == INVALID_HANDLE_VALUE) {
-        printf("Error opening directory. Error code: %d\n", GetLastError());
-        return fileNames;
-    }
-    
-    do {
-        if (strcmp(fileInfo.cFileName, "..") != 0 && strcmp(fileInfo.cFileName, ".") != 0) { //use the next file
-            fileNames.push_back(fileInfo.cFileName);
-        }
-    } while (FindNextFile(firstFile, &fileInfo));
-    if (!FindClose(firstFile)) {
-        printf("Error at FindClose.\nError code: %d\n", GetLastError());
-        return fileNames;
-    }
-
-    sort(fileNames.begin(), fileNames.end(), compareFileNames);
-    
-    return fileNames;
-}
-
-
+/**
+* Method responsible for translating a line from deposit directory files into a dataclass
+*/
 ProductInfo Deposit::processLineAndGetProduct(const char* line) {
     
     int id_product, expires_in, shelve_id, product_price;
@@ -100,6 +14,10 @@ ProductInfo Deposit::processLineAndGetProduct(const char* line) {
     return ProductInfo(-1, -1, -1, -1);
 }
 
+/**
+* Method responsible for reading the files in deposit directory, line by line and returns a vector of 
+* ProductInfo dataclasses.
+*/
 std::vector<ProductInfo> Deposit::processLines(HANDLE fileToParse)
 {
 
@@ -143,25 +61,12 @@ std::vector<ProductInfo> Deposit::processLines(HANDLE fileToParse)
 
 }
 
-int Deposit::handleMappedFiles(HANDLE hMarketShelves,HANDLE hMarketValability, HANDLE hProductPrices, ProductInfo productInfo) {
-    LPVOID pViewShelves = MapViewOfFile(hMarketShelves, FILE_MAP_ALL_ACCESS, 0, 0, 0);
-    LPVOID pViewValability = MapViewOfFile(hMarketValability, FILE_MAP_ALL_ACCESS, 0, 0, 0);
-    LPVOID pViewPrices = MapViewOfFile(hProductPrices, FILE_MAP_ALL_ACCESS, 0, 0, 0);
-
-
-    if (pViewShelves == NULL) {
-        std::cerr << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
-        return 0;
-    }
-    if (pViewValability == NULL) {
-        std::cerr << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
-        return 0;
-    }
-    if (pViewPrices == NULL) {
-        std::cerr << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
-        return 0;
-    }
-
+int Deposit::handleMappedFiles(
+    LPVOID pViewShelves,
+    LPVOID pViewValability,
+    LPVOID pViewPrices,
+    ProductInfo productInfo
+) {
 
     DWORD* shelvesArray = static_cast<DWORD*>(pViewShelves);
     if (shelvesArray[productInfo.getShelveId()] == 0xFFFFFFFF) {
@@ -172,44 +77,39 @@ int Deposit::handleMappedFiles(HANDLE hMarketShelves,HANDLE hMarketValability, H
         valabilityArray[productInfo.getIdProduct()] = productInfo.getExpiresIn();
         pricesArray[productInfo.getIdProduct()] = productInfo.getProductPrice();
         
-        if (this->createOrOpenFiles(LOGS_FILE) == 0) {
-            return 0;
-        }
         string logMsg = "Am adaugat pe raftul" + std::to_string(productInfo.getShelveId())
             + " produsul " + std::to_string(productInfo.getIdProduct()) +
             " ce are o valabilitate de " + std::to_string(productInfo.getExpiresIn())
             + " zile si un pret de " + std::to_string(productInfo.getProductPrice());
 
         if (this->writeToFile(LOGS_FILE, logMsg) == 0) {
-            this->closeHandle(LOGS_FILE);
             return 0;
         }
             
-
-        this->closeHandle(LOGS_FILE);
-
     }
     else {
-        if (this->createOrOpenFiles(ERRORS_FILE) == 0)
-            return 0;
+
         string errorMsg = "S-a încercat adaugarea produsului " + std::to_string(productInfo.getIdProduct())
             + " pe raftul " + std::to_string(productInfo.getShelveId())
             + " care este deja ocupat de " + to_string(shelvesArray[productInfo.getShelveId()]);
         if (this->writeToFile(ERRORS_FILE, errorMsg) == 0) {
-            this->closeHandle(ERRORS_FILE);
             return 0;
         }
-
-        this->closeHandle(ERRORS_FILE);
     }
-    UnmapViewOfFile(pViewPrices);
-    UnmapViewOfFile(pViewShelves);
-    UnmapViewOfFile(pViewValability);
     return 1;
 
 }
 
+/**
+* Method responsible for processing a file
+*/
 int Deposit::proccessFile(LPCSTR firstFilePath) {
+
+    if (this->createOrOpenFiles(ERRORS_FILE) == 0)
+        return 0;
+       
+    std::stringstream ss;
+
     HANDLE hFile = CreateFile(
         firstFilePath, 
         GENERIC_READ, 
@@ -221,8 +121,8 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
     
     if (hFile == INVALID_HANDLE_VALUE) {
         // Failed to open the file
-        DWORD error = GetLastError();
-        std::cerr << "Error opening file: " << firstFilePath << ". Error code: " << error << std::endl;
+        ss << "Error opening file: " << firstFilePath << ". Error code: " << std::to_string(GetLastError()) << std::endl;
+        this->writeToFile(ERRORS_FILE, ss.str());
         return 0;
     }
     std::vector<ProductInfo> FirstFileProducts = this->processLines(hFile);
@@ -230,99 +130,126 @@ int Deposit::proccessFile(LPCSTR firstFilePath) {
     //open the memory mapped files
     HANDLE hMarketShelves = getHandleForMappedFile(marketShelves);
     if (hMarketShelves == NULL) {
-        DWORD error = GetLastError();
-        std::cerr << "Error opening MarketShelves Mapped File!" << error << std::endl;
+        ss << "Error opening MarketShelves Mapped File!" << std::to_string(GetLastError()) << std::endl;
+        this->writeToFile(ERRORS_FILE, ss.str());
         return 0;
     }
     HANDLE hMarketValability = getHandleForMappedFile(marketValability);
     if (hMarketValability == NULL) {
         DWORD error = GetLastError();
-        std::cerr << "Error opening MarketValability Mapped File!" << error << std::endl;
+        ss << "Error opening hMarketValability Mapped File!" << std::to_string(GetLastError()) << std::endl;
+        this->writeToFile(ERRORS_FILE, ss.str());
         CloseHandle(hMarketShelves);
         return 0;
     }
     HANDLE hProductPrices = getHandleForMappedFile(productPrices);
     if (hProductPrices == NULL) {
         DWORD error = GetLastError();
-        std::cerr << "Error opening Product Prices Mapped File!" << error << std::endl;
+        ss << "Error opening hMarketValability Mapped File!" << std::to_string(GetLastError()) << std::endl;
+        this->writeToFile(ERRORS_FILE, ss.str());
         CloseHandle(hMarketValability);
         CloseHandle(hMarketShelves);
         return 0;
     }
 
+    // Opening memory mapped files
+    LPVOID pViewShelves = MapViewOfFile(hMarketShelves, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+    LPVOID pViewValability = MapViewOfFile(hMarketValability, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+    LPVOID pViewPrices = MapViewOfFile(hProductPrices, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 
-
-    for (auto& product : FirstFileProducts) { //add each product to the memory mapped files
-        if (this->handleMappedFiles(hMarketShelves, hMarketValability, hProductPrices, product) == 0)
-            ExitProcess(0);
+    if (pViewShelves == NULL) {
+        ss <<"Error mapping view of file. Error code: " << std::to_string(GetLastError()) << std::endl;
+        this->writeToFile(ERRORS_FILE, ss.str());
+        CloseHandle(hMarketShelves);
+        CloseHandle(hMarketValability);
+        CloseHandle(hProductPrices);
+        this->closeHandle(ERRORS_FILE);
+        return 0;
     }
-    //close handles
+    if (pViewValability == NULL) {
+        ss << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
+        this->writeToFile(ERRORS_FILE, ss.str());
+        CloseHandle(hMarketShelves);
+        CloseHandle(hMarketValability);
+        CloseHandle(hProductPrices);
+        this->closeHandle(ERRORS_FILE);
+        UnmapViewOfFile(pViewShelves);
+        return 0;
+    }
+    if (pViewPrices == NULL) {
+        ss << "Error mapping view of file. Error code: " << GetLastError() << std::endl;
+        this->writeToFile(ERRORS_FILE, ss.str());
+        CloseHandle(hMarketShelves);
+        CloseHandle(hMarketValability);
+        CloseHandle(hProductPrices);
+        this->closeHandle(ERRORS_FILE);
+        UnmapViewOfFile(pViewShelves);
+        UnmapViewOfFile(pViewValability);
+        return 0;
+    }
+
+    // Opening Log file and error file
+    if (this->createOrOpenFiles(LOGS_FILE) == 0)
+    {
+        //close handles for memory mapping files and current file
+        CloseHandle(hFile);
+        CloseHandle(hMarketShelves);
+        CloseHandle(hMarketValability);
+        CloseHandle(hProductPrices);
+
+        // unmap view of file
+        UnmapViewOfFile(pViewPrices);
+        UnmapViewOfFile(pViewShelves);
+        UnmapViewOfFile(pViewValability);
+        ss << "Error opening LOGS file. Error code: " << GetLastError() << std::endl;
+        this->writeToFile(ERRORS_FILE, ss.str());
+
+        // closing Logs and Error file
+        this->closeHandle(ERRORS_FILE);
+
+        return 0;
+    }
+
+    for (ProductInfo& product : FirstFileProducts) { //add each product to the memory mapped files
+        if (this->handleMappedFiles(pViewShelves, pViewValability, pViewPrices, product) == 0)
+        {
+            //close handles for memory mapping files and current file
+            CloseHandle(hFile);
+            CloseHandle(hMarketShelves);
+            CloseHandle(hMarketValability);
+            CloseHandle(hProductPrices);
+
+            // closing Logs and Error file
+            ss << "Error opening LOGS file. Error code: " << GetLastError() << std::endl;
+            this->writeToFile(ERRORS_FILE, ss.str());
+
+            this->closeHandle(LOGS_FILE);
+            this->closeHandle(ERRORS_FILE);
+
+            // unmap view of file
+            UnmapViewOfFile(pViewPrices);
+            UnmapViewOfFile(pViewShelves);
+            UnmapViewOfFile(pViewValability);
+
+
+            return 0;
+        }
+    }
+
+
+    //close handles for memory mapping files and current file
     CloseHandle(hFile);
     CloseHandle(hMarketShelves);
     CloseHandle(hMarketValability);
     CloseHandle(hProductPrices);
+
+    // closing Logs and Error file
+    this->closeHandle(LOGS_FILE);
+    this->closeHandle(ERRORS_FILE);
+
+    // unmap view of file
+    UnmapViewOfFile(pViewPrices);
+    UnmapViewOfFile(pViewShelves);
+    UnmapViewOfFile(pViewValability);
     return 1;
-}
-
-void Deposit::startProccessing(LPCSTR directoryDeposit) {
-
-    // 1. Open Mutex, Events and Timer
-    HANDLE hMutexCriticalSection = OpenMutex(SYNCHRONIZE, FALSE, CRITICAL_SECTION_MUTEX);
-    HANDLE hMasterEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, MASTER_EVENT); // for the master event
-    HANDLE hDepositEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DEPOSIT_EVENT); // for the deposit event
-    HANDLE hSoldEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, SOLD_EVENT); // for the sold event
-    HANDLE hDonationEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DONATION_EVENT); // for the donation event
-    HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
-    HANDLE hDepositEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DEPOSIT_EVENT); // for the deposit event
-    HANDLE hCriticalError = OpenEvent(EVENT_MODIFY_STATE, FALSE, ABORT_EVENT);
-
-
-    // 1. return a vector with the name of files
-    vector<string> filesInOrder = this->preprocessingFiles(directoryDeposit);
-
-    if (!filesInOrder.empty()) { // process the first file
-        string& firstFileName = filesInOrder.front();
-        cout << firstFileName << endl;
-        if (this->proccessFile(constructPath(directoryDeposit, firstFileName.c_str())) == 0)
-        {
-            SetEvent(hCriticalError);
-            SetEvent(hSoldEvent);
-            SetEvent(hDepositEvent);
-            SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
-            std::cerr << "Error opening the first file to parse!" << std::endl;
-            ExitProcess(0);
-        }
-        //set event pentru ca am terminat primul file
-        SetEvent(hEventFirstFile); // am anuntat celelalte 2 procese ca s a terminat cu prima zi
-    }
-
-    // 1. Open the mutex for critical section
-
-
-    for (auto it = filesInOrder.begin() + 1; it != filesInOrder.end(); ++it) {
-        string& fileName = *it;
-
-        WaitForSingleObject(hMutexCriticalSection, INFINITE);
-        // Critical section
-
-     //   cout << fileName << endl;
-        if (this->proccessFile(constructPath(directoryDeposit, fileName.c_str())) == 0)
-        {
-            SetEvent(hCriticalError);
-            SetEvent(hSoldEvent);
-            SetEvent(hDepositEvent);
-            SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
-            std::cerr << "Error opening the first file to parse!" << std::endl;
-            ExitProcess(0);
-        }
-
-        ReleaseMutex(hMutexCriticalSection);
-
-        // signals master that deposit.exe finished processing 1st day
-        SetEvent(hDepositEvent);
-
-        cout << "Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
-        WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
-        cout << "Am ramas blocat!" << endl;
-    }
 }

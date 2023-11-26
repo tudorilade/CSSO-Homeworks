@@ -1,22 +1,16 @@
 #pragma once
 using namespace std;
-#include <tchar.h>
-#include<windows.h>
-#include<vector>
-#include "ProductInfo.h"
-#include "FileManipulation.h"
+#include "BaseChildProcesses.h"
 
-
-class Deposit : FileManipulation{
+class Deposit : public BaseChildProcesses {
 
 public:
-    Deposit() {};
+    Deposit() : BaseChildProcesses(TRUE) {}
 
-    void startProccessing(LPCSTR);
-    int proccessFile(LPCSTR);
+    virtual int proccessFile(LPCSTR) override;
+    virtual ProductInfo processLineAndGetProduct(const char*) override;
+
     vector<ProductInfo> processLines(HANDLE);
-    ProductInfo processLineAndGetProduct(const char*);
-    vector<string> preprocessingFiles(LPCSTR);
-    int handleMappedFiles(HANDLE, HANDLE, HANDLE, ProductInfo);
+    int handleMappedFiles(LPVOID, LPVOID, LPVOID, ProductInfo);
 
 };

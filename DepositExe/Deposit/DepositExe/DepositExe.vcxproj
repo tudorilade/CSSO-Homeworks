@@ -127,12 +127,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BaseChildProcesses.cpp" />
     <ClCompile Include="Deposit.cpp" />
     <ClCompile Include="DepositExe.cpp" />
     <ClCompile Include="FileManipulation.cpp" />
     <ClCompile Include="ProductInfo.cpp" />
+    <ClCompile Include="SoldExe.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BaseChildProcesses.h" />
     <ClInclude Include="Deposit.h" />
     <ClInclude Include="FileManipulation.h" />
     <ClInclude Include="ProductInfo.h" />
