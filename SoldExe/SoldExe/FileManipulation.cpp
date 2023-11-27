@@ -77,15 +77,27 @@ DWORD FileManipulation::createOrOpenFiles(DWORD fileType) {
 			FILE_ATTRIBUTE_NORMAL, 
 			NULL 
 		);
+
 	}
 
 	if (fileHandler == INVALID_HANDLE_VALUE) {
-		return 0;
+		DWORD dwError = GetLastError();
+		if (dwError == ERROR_ALREADY_EXISTS) {
+			// File already exists, proceed as normal
+			this->setHandle(fileType, fileHandler);
+			return 1;
+		}
+		else {
+			// Handle other errors
+			cout << "Error in file creation/opening: " << dwError << endl;
+			return 0;
+		}
 	}
-
-	this->setHandle(fileType, fileHandler);
-
-	return 1;
+	else {
+		// Successfully created or opened the file
+		this->setHandle(fileType, fileHandler);
+		return 1;
+	}
 }
 
 /**
@@ -120,6 +132,8 @@ DWORD FileManipulation::writeToFile(DWORD fileType, string buffer) {
 */
 DWORD FileManipulation::appendToFile(DWORD fileType, string buffer) {
 
+
+	//cout << "SAU E DI NAPPEND????" << endl;
 	SetFilePointer(this->getHandle(fileType), 0, NULL, FILE_END);
 
 	DWORD bytesWritten;

@@ -9,6 +9,7 @@
 #define FINISHED_DEPOSIT_EVENT "finishedDepoEvent"
 #define FIRST_DAY_EVENT "firstDayEvent"
 #define ABORT_EVENT "abortEvent"
+#define START_PROCESSING "startProcessing"
 
 #define MASTER_EVENT "masterEvent"
 #define TIME_TABLE_EVENT "timeTableEvent"

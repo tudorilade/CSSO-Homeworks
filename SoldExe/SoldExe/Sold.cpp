@@ -149,7 +149,7 @@ int Sold::proccessFile(LPCSTR firstFilePath)
 
         // closing Logs and Error file
             cerr << "SOLD " << "Error opening handleMappedFiles product. Error code: " << GetLastError() << endl;
-            
+            Sleep(10000);
             this->closeHandle(LOGS_FILE);
             
         // unmap view of file
@@ -201,7 +201,7 @@ DWORD Sold::handleMappedFiles(LPVOID pViewShelves, LPVOID pViewValability, LPVOI
         errorsFile << "S-a incercat vanzarea unui produs de pe un raft " << shelve_id << " ce nu contine produs\n";
         this->appendToFile(ERRORS_FILE, errorsFile.str());
         this->closeHandle(ERRORS_FILE);
-        return 0; // Continue processing other lines
+        return 1; // Continue processing other lines
     }
 
     DWORD id_produs = shelves[shelve_id];

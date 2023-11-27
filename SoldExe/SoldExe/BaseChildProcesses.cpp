@@ -80,8 +80,10 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
     HANDLE hSoldEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, SOLD_EVENT); // for the sold event
     HANDLE hDonationEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DONATION_EVENT); // for the donation event
     HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
-    HANDLE hCriticalError = OpenEvent(EVENT_MODIFY_STATE, FALSE, ABORT_EVENT);
-    HANDLE hFinalEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, FINISHED_SOLD_EVENT);
+  //  HANDLE hCriticalError = OpenEvent(EVENT_MODIFY_STATE, FALSE, ABORT_EVENT);
+    HANDLE hSoldFinalEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, FINISHED_SOLD_EVENT);
+    HANDLE hDepositFinalEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, FINISHED_DEPOSIT_EVENT);
+    HANDLE hDonationFinalEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, FINISHED_DONATION_EVENT);
 
     // 2. return a vector with the name of files
     vector<string> filesInOrder = this->preprocessingFiles(directoryDeposit);
@@ -92,10 +94,13 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         string& firstFileName = filesInOrder.front();
         if (this->proccessFile(constructPath(directoryDeposit, firstFileName.c_str())) == 0)
         {
-            SetEvent(hCriticalError);
+         //   SetEvent(hCriticalError);
             SetEvent(hSoldEvent);
             SetEvent(hDepositEvent);
             SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
+            SetEvent(hSoldFinalEvent);
+            SetEvent(hDepositFinalEvent);
+            SetEvent(hDonationFinalEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
             cerr << "Error opening the first file to parse!" << endl;
             ExitProcess(0);
         }
@@ -114,17 +119,22 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
     for (; it != filesInOrder.end(); ++it) {
         string& fileName = *it;
 
-        Sleep(1000);
+        //Sleep(1000);
+      
         WaitForSingleObject(hMutexCriticalSection, INFINITE);
         // Critical section
 
         if (this->proccessFile(constructPath(directoryDeposit, fileName.c_str())) == 0)
         {
-            SetEvent(hCriticalError);
+      //      SetEvent(hCriticalError);
             SetEvent(hSoldEvent);
             SetEvent(hDepositEvent);
             SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
+            SetEvent(hSoldFinalEvent);
+            SetEvent(hDepositFinalEvent);
+            SetEvent(hDonationFinalEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
             cerr << "SOLD " << "Error opening the first file to parse!" << endl;
+            Sleep(10000);
             ExitProcess(0);
         }
 
@@ -138,7 +148,7 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
     }
 
     cout << "SOLD " << "Am terminat de procesat !" << endl;
-    SetEvent(hFinalEvent);
+    SetEvent(hSoldFinalEvent);
 }
 
 /**

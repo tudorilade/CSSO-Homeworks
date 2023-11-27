@@ -91,6 +91,7 @@ BOOL Manager::execute(DirFileHandler& handler) {
     }
 
     HANDLE hMaster = CreateEvent(NULL, TRUE, FALSE, MASTER_EVENT);
+    HANDLE hInitial = CreateEvent(NULL, TRUE, FALSE, FIRST_DAY_EVENT);
 
     if (hMaster == NULL)
     {
@@ -100,19 +101,19 @@ BOOL Manager::execute(DirFileHandler& handler) {
 
     // 3. Setting timetable
 
-    HANDLE hTimer = CreateWaitableTimer(NULL, FALSE, TIME_TABLE_EVENT);
-    if (hTimer == NULL) {
-        this->lastError = L"Failed to create timer: " + to_wstring(GetLastError()) + L"\r\n";
-        return FALSE;
-    }
+    //HANDLE hTimer = CreateWaitableTimer(NULL, FALSE, TIME_TABLE_EVENT);
+    //if (hTimer == NULL) {
+    //    this->lastError = L"Failed to create timer: " + to_wstring(GetLastError()) + L"\r\n";
+    //    return FALSE;
+    //}
 
-    LARGE_INTEGER liDueTime;
-    liDueTime.QuadPart = -600000000LL; // 60 seconds
+    //LARGE_INTEGER liDueTime;
+    //liDueTime.QuadPart = -600000000LL; // 60 seconds
 
-    if (!SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, FALSE)) {
-        this->lastError = L"Failed to set timer: " + to_wstring(GetLastError()) + L"\r\n";
-        return FALSE;
-    }
+    //if (!SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, FALSE)) {
+    //    this->lastError = L"Failed to set timer: " + to_wstring(GetLastError()) + L"\r\n";
+    //    return FALSE;
+    //}
     
     // Finished setup for events; Starting the processes;
 
@@ -182,7 +183,9 @@ BOOL Manager::execute(DirFileHandler& handler) {
     // 1. closing the mutex
     CloseHandle(hMutex);
     CloseHandle(hMaster);
-    CloseHandle(hTimer);
+    CloseHandle(hInitial);
+
+   // CloseHandle(hTimer);
 
     return TRUE;
 }
