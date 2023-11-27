@@ -103,14 +103,15 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         //set event pentru ca am terminat primul file
         SetEvent(hEventFirstFile); // am anuntat celelalte 2 procese ca s a terminat cu prima zi
         it++;
-        cout<<"DEPOST " << "am ajuns la first file "<<endl;
-        Sleep(3000);
+        cout<<"DEPOST " << " am ajuns la first file "<<endl;
+        Sleep(1000);
      }
     // 1. Open the mutex for critical section
 
     for (; it != filesInOrder.end(); ++it) {
         string& fileName = *it;
 
+        Sleep(1000);
         WaitForSingleObject(hMutexCriticalSection, INFINITE);
         // Critical section
 
@@ -123,7 +124,6 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
             SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
             std::cerr << "Deposit " << "Error opening the first file to parse!" << GetLastError() << std::endl;
 
-            Sleep(7000);
             ExitProcess(0);
         }
 
@@ -133,7 +133,6 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         SetEvent(hDepositEvent);
 
         cout << "Deposit " << "Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
-        Sleep(3000);
         WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
         cout << "Deposit " << "Am ramas blocat!" << endl;
     }

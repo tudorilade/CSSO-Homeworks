@@ -139,7 +139,6 @@ int Sold::proccessFile(LPCSTR firstFilePath)
 
 
     for (ProductInfo& product : FirstFileProducts) { //add each product to the memory mapped files
-        cout << product.getShelveId() << endl;
         if (this->handleMappedFiles(pViewShelves, pViewValability, pViewPrices, product) == 0)
         {
             //close handles for memory mapping files and current file

@@ -135,6 +135,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseChildProcesses.h" />
+    <ClInclude Include="constants.h" />
     <ClInclude Include="Deposit.h" />
     <ClInclude Include="FileManipulation.h" />
     <ClInclude Include="ProductInfo.h" />

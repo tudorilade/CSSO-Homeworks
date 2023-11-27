@@ -22,10 +22,10 @@ private:
 	LPCSTR PATH_TO_ERRORS = "C:\\Facultate\\CSSO\\Week4\\Reports\\errors.txt";
 	HANDLE hErrors;
 
-	LPCSTR PATH_TO_DONATION = "C:\\Facultate\\CSSO\\Week4\\Reports\\donation.txt";
+	LPCSTR PATH_TO_DONATION = "C:\\Facultate\\CSSO\\Week4\\Reports\\Summary\\donations.txt";
 	HANDLE hDonation;
 
-	LPCSTR PATH_TO_SOLD = "C:\\Facultate\\CSSO\\Week4\\Reports\\sold.txt";
+	LPCSTR PATH_TO_SOLD = "C:\\Facultate\\CSSO\\Week4\\Reports\\Summary\\sold.txt";
 	HANDLE hSold;
 
 public:

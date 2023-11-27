@@ -160,7 +160,7 @@ BOOL Manager::execute(DirFileHandler& handler) {
 
         // check if all child processes have completed all files
         if (WaitForMultipleObjects(3, finalEvents, TRUE, 0) == WAIT_OBJECT_0) {
-            allProcessesCompleted = true;
+            allProcessesCompleted = TRUE;
         }
         else {
             // Allow children to move to the next file if they did not finish

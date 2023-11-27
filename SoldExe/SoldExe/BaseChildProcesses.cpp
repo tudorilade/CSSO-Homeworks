@@ -104,8 +104,8 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         it++;
      }
     else {
-        cout << "Sold Astept event!" << endl;
-        Sleep(3000);
+        cout << "Sold " <<  "Astept event!" << endl;
+        Sleep(1000);
         WaitForSingleObject(hEventFirstFile, INFINITE);
     }
 
@@ -114,6 +114,7 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
     for (; it != filesInOrder.end(); ++it) {
         string& fileName = *it;
 
+        Sleep(1000);
         WaitForSingleObject(hMutexCriticalSection, INFINITE);
         // Critical section
 
@@ -130,12 +131,10 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
         ReleaseMutex(hMutexCriticalSection);
 
         // signals master that deposit.exe finished processing 1st day
-        SetEvent(hDepositEvent);
+        SetEvent(hSoldEvent);
         
-        cout << "SOLD Am terminat al doilea file, acum astept un input ca sa simulez wait! Acesta este file-ul: " << fileName << endl;
-        Sleep(3000);
+        cout << "SOLD " << "Acesta este file - ul terminat: " << fileName << endl;
         WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
-        cout << "Am ramas blocat!" << endl;
     }
 
     cout << "SOLD " << "Am terminat de procesat !" << endl;
