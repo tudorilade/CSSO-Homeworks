@@ -141,7 +141,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {   
     HWND hEdit;
-    wstring contentToDisplay;
+    string contentToDisplay;
     switch (message)
     {
     case WM_CREATE:
@@ -202,7 +202,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 // when startManagement ends, it means that the child processes have finished;
 
                 contentToDisplay = dirFHandler.getContentForConsole();
-                SetWindowTextW(hEdit, contentToDisplay.c_str());
+                SetWindowText(hEdit, contentToDisplay.c_str());
 
                 break;
             case IDM_EXIT:

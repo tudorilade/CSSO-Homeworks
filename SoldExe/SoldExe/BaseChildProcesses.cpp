@@ -73,60 +73,79 @@ BOOL BaseChildProcesses::getDepositFlag()
 
 void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
 
-    // 1. Open Mutex, Events and Timer
+    // 1. Open Mutex, Events
     HANDLE hMutexCriticalSection = OpenMutex(SYNCHRONIZE, FALSE, CRITICAL_SECTION_MUTEX);
-    HANDLE hMasterEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, MASTER_EVENT); // for the master event
-    HANDLE hDepositEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DEPOSIT_EVENT); // for the deposit event
-    HANDLE hSoldEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, SOLD_EVENT); // for the sold event
-    HANDLE hDonationEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, DONATION_EVENT); // for the donation event
-    HANDLE hEventFirstFile = OpenEvent(EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
-  //  HANDLE hCriticalError = OpenEvent(EVENT_MODIFY_STATE, FALSE, ABORT_EVENT);
-    HANDLE hSoldFinalEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, FINISHED_SOLD_EVENT);
-    HANDLE hDepositFinalEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, FINISHED_DEPOSIT_EVENT);
-    HANDLE hDonationFinalEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, FINISHED_DONATION_EVENT);
+    HANDLE hMasterEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, MASTER_EVENT); // for the master event
+    HANDLE hDepositEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, DEPOSIT_EVENT); // for the deposit event
+    HANDLE hSoldEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, SOLD_EVENT); // for the sold event
+    HANDLE hDonationEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, DONATION_EVENT); // for the donation event
+    HANDLE hEventFirstFile = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, FIRST_DAY_EVENT);
+    HANDLE hSoldFinalEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, FINISHED_SOLD_EVENT);
+    HANDLE hDepositFinalEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, FINISHED_DEPOSIT_EVENT);
+    HANDLE hDonationFinalEvent = OpenEvent(SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, FINISHED_DONATION_EVENT);
+    // Check if the mutex handle is valid
+    if (hMutexCriticalSection == NULL || hMutexCriticalSection == INVALID_HANDLE_VALUE) {
+        cout << "CRITICAL_SECTION_MUTEX failed to open" << endl;
+        Sleep(10000);
+    }
+
+    // Check if each event handle is valid
+    if (hMasterEvent == NULL || hMasterEvent == INVALID_HANDLE_VALUE) {
+        cout << "MASTER_EVENT failed to open" << endl;
+        Sleep(10000);
+    }
+
+    if (hDepositEvent == NULL || hDepositEvent == INVALID_HANDLE_VALUE) {
+        cout << "DEPOSIT_EVENT failed to open" << endl;
+        Sleep(10000);
+    }
+
+    if (hSoldEvent == NULL || hSoldEvent == INVALID_HANDLE_VALUE) {
+        cout << "SOLD_EVENT failed to open" << endl;
+        Sleep(10000);
+    }
+
+    if (hDonationEvent == NULL || hDonationEvent == INVALID_HANDLE_VALUE) {
+        cout << "DONATION_EVENT failed to open" << endl;
+        Sleep(10000);
+    }
+
+    if (hEventFirstFile == NULL || hEventFirstFile == INVALID_HANDLE_VALUE) {
+        cout << "FIRST_DAY_EVENT failed to open" << endl;
+        Sleep(10000);
+    }
+
+    if (hSoldFinalEvent == NULL || hSoldFinalEvent == INVALID_HANDLE_VALUE) {
+        cout << "FINISHED_SOLD_EVENT failed to open" << endl;
+        Sleep(10000);
+    }
+
+    if (hDepositFinalEvent == NULL || hDepositFinalEvent == INVALID_HANDLE_VALUE) {
+        cout << "FINISHED_DEPOSIT_EVENT failed to open" << endl;
+        Sleep(10000);
+    }
+
+    if (hDonationFinalEvent == NULL || hDonationFinalEvent == INVALID_HANDLE_VALUE) {
+        cout << "FINISHED_DONATION_EVENT failed to open" << endl;
+        Sleep(10000);
+    }
+
 
     // 2. return a vector with the name of files
     vector<string> filesInOrder = this->preprocessingFiles(directoryDeposit);
 
-    auto it = filesInOrder.begin(); // get an iterator from the begining of vector
-
-    if (!filesInOrder.empty() && this->getDepositFlag()) { // process the first file
-        string& firstFileName = filesInOrder.front();
-        if (this->proccessFile(constructPath(directoryDeposit, firstFileName.c_str())) == 0)
-        {
-         //   SetEvent(hCriticalError);
-            SetEvent(hSoldEvent);
-            SetEvent(hDepositEvent);
-            SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
-            SetEvent(hSoldFinalEvent);
-            SetEvent(hDepositFinalEvent);
-            SetEvent(hDonationFinalEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
-            cerr << "Error opening the first file to parse!" << endl;
-            ExitProcess(0);
-        }
-        //set event pentru ca am terminat primul file
-        SetEvent(hEventFirstFile); // am anuntat celelalte 2 procese ca s a terminat cu prima zi
-        it++;
-     }
-    else {
-        cout << "Sold " <<  "Astept event!" << endl;
-        Sleep(1000);
-        WaitForSingleObject(hEventFirstFile, INFINITE);
-    }
-
-    // 1. Open the mutex for critical section
-
-    for (; it != filesInOrder.end(); ++it) {
+    cout << "Sold " <<  "Astept FIRST FILE!" << endl;
+    WaitForSingleObject(hEventFirstFile, INFINITE);
+       
+    cout << " AM TRECUT DE FIRST FILE" << endl;
+    for (auto it = filesInOrder.begin() ; it != filesInOrder.end(); ++it) {
         string& fileName = *it;
 
-        //Sleep(1000);
-      
         WaitForSingleObject(hMutexCriticalSection, INFINITE);
         // Critical section
 
         if (this->proccessFile(constructPath(directoryDeposit, fileName.c_str())) == 0)
         {
-      //      SetEvent(hCriticalError);
             SetEvent(hSoldEvent);
             SetEvent(hDepositEvent);
             SetEvent(hDonationEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
@@ -134,21 +153,40 @@ void BaseChildProcesses::startProccessing(LPCSTR directoryDeposit) {
             SetEvent(hDepositFinalEvent);
             SetEvent(hDonationFinalEvent); // make sure that master is noticed that a criticalError has happened, to shut down all processes
             cerr << "SOLD " << "Error opening the first file to parse!" << endl;
-            Sleep(10000);
             ExitProcess(0);
         }
 
         ReleaseMutex(hMutexCriticalSection);
 
         // signals master that deposit.exe finished processing 1st day
-        SetEvent(hSoldEvent);
-        
-        cout << "SOLD " << "Acesta este file - ul terminat: " << fileName << endl;
-        WaitForSingleObject(hMasterEvent, INFINITE); // Waits signal from master until all silblings finish to process the first day.
+        if (it == filesInOrder.end() - 1) {
+            SetEvent(hSoldFinalEvent);
+            SetEvent(hSoldEvent);
+        }
+        else {
+            SetEvent(hSoldEvent);
+        }
+
+        cout << "Acesta este file - ul terminat: " << fileName << endl;
+        DWORD waitResult = WaitForSingleObject(hMasterEvent, INFINITE);
+        Sleep(1000);
     }
 
-    cout << "SOLD " << "Am terminat de procesat !" << endl;
+    cout << "Am terminat de procesat !" << endl;
     SetEvent(hSoldFinalEvent);
+    CloseHandle(hMutexCriticalSection);
+
+    CloseHandle(hMasterEvent);
+    CloseHandle(hDepositEvent);
+    CloseHandle(hSoldEvent);
+    CloseHandle(hDonationEvent);
+    CloseHandle(hEventFirstFile);
+
+    // CloseHandle(hCriticalError);
+
+    CloseHandle(hSoldFinalEvent);
+    CloseHandle(hDepositFinalEvent);
+    CloseHandle(hDonationFinalEvent);
 }
 
 /**

@@ -7,7 +7,7 @@ using namespace std;
 
 class Sold : public BaseChildProcesses {
 private:
-	INT32 totalSales = 0;
+	int totalSales = 0;
 	
 public:
 

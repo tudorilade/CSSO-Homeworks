@@ -84,7 +84,7 @@ int Donations::proccessFile(LPCSTR filePath) {
     for (size_t i = 0; i < arraySize; ++i) {
         if (valabilityArray[i] == 0) {
             number = number + pricesArray[i];
-            ss << "Produsul cu id-ul : " << i << "a fost donat " << endl;
+            ss << "Produsul cu id-ul : " << i << "a fost donat \r\n";
             this->appendToFile(LOGS_FILE, ss.str());
             valabilityArray[i] = 0xFFFFFFFF;
             pricesArray[i] = 0xFFFFFFFF;
@@ -100,6 +100,8 @@ int Donations::proccessFile(LPCSTR filePath) {
     }
 
     this->total = number;
+
+    cout << " TOTAL " << this->total << endl;
 
     if (!this->writeTotalSales()) {
         cerr << "Donations " << "Error writing to sold file. Error code: " << GetLastError() << endl;
@@ -126,24 +128,34 @@ DWORD Donations::writeTotalSales() {
         GENERIC_READ | GENERIC_WRITE,
         0,
         NULL,
-        OPEN_EXISTING, // Overwrite existing file
+        OPEN_EXISTING, // Open the existing file
         FILE_ATTRIBUTE_NORMAL,
         NULL);
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        // Handle error
         return 0;
     }
 
-    DWORD sold;
+    int sold = 0;
+    DWORD bytesRead;
     DWORD bytesWritten;
 
-    ReadFile(hFile, &sold, sizeof(DWORD), &bytesWritten, NULL);
+    if (!ReadFile(hFile, &sold, sizeof(int), &bytesRead, NULL) || bytesRead != sizeof(int)) {
+        CloseHandle(hFile);
+        return 0;
+    }
 
     sold += total;
 
-    WriteFile(hFile, &sold, sizeof(DWORD), &bytesWritten, NULL);
+    SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
+
+    if (!WriteFile(hFile, &sold, sizeof(int), &bytesWritten, NULL) || bytesWritten != sizeof(int)) {
+        CloseHandle(hFile);
+        return 0;
+    }
+
     CloseHandle(hFile);
     total = 0;
+
     return 1;
 }

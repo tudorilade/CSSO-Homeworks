@@ -198,7 +198,7 @@ DWORD Sold::handleMappedFiles(LPVOID pViewShelves, LPVOID pViewValability, LPVOI
     if (shelves[shelve_id] == 0xFFFFFFFF) {
         this->createOrOpenFiles(ERRORS_FILE);
         stringstream errorsFile;
-        errorsFile << "S-a incercat vanzarea unui produs de pe un raft " << shelve_id << " ce nu contine produs\n";
+        errorsFile << "S-a incercat vanzarea unui produs de pe un raft " << shelve_id << " ce nu contine produs\r\n";
         this->appendToFile(ERRORS_FILE, errorsFile.str());
         this->closeHandle(ERRORS_FILE);
         return 1; // Continue processing other lines
@@ -208,7 +208,7 @@ DWORD Sold::handleMappedFiles(LPVOID pViewShelves, LPVOID pViewValability, LPVOI
     if (valability[id_produs] != 0) {
         stringstream ss;
         ss << "S-a vandut produsul " << id_produs << " de pe raftul " << shelve_id << " cu "
-            << valability[id_produs] << " zile inainte de a fi donat si cu pretul de " << prices[id_produs] << "\n";
+            << valability[id_produs] << " zile inainte de a fi donat si cu pretul de " << prices[id_produs] << "\r\n";
 
         this->appendToFile(LOGS_FILE, ss.str());
        
@@ -233,24 +233,34 @@ DWORD Sold::writeTotalSales() {
         GENERIC_READ | GENERIC_WRITE,
         0,
         NULL,
-        CREATE_ALWAYS, // Overwrite existing file
+        OPEN_ALWAYS, // Open existing file or create if it does not exist
         FILE_ATTRIBUTE_NORMAL,
         NULL);
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        // Handle error
         return 0;
     }
 
-    DWORD sold;
+    int sold = 0;
+    DWORD bytesRead;
     DWORD bytesWritten;
 
-    ReadFile(hFile, &sold, sizeof(DWORD), &bytesWritten, NULL);
+    if (!ReadFile(hFile, &sold, sizeof(int), &bytesRead, NULL) || bytesRead != sizeof(int)) {
+        CloseHandle(hFile);
+        return 0;
+    }
 
     sold += totalSales;
 
-    WriteFile(hFile, &sold, sizeof(DWORD), &bytesWritten, NULL);
+    SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
+
+    if (!WriteFile(hFile, &sold, sizeof(int), &bytesWritten, NULL) || bytesWritten != sizeof(int)) {
+        CloseHandle(hFile);
+        return 0;
+    }
+
     CloseHandle(hFile);
     totalSales = 0;
+
     return 1;
 }

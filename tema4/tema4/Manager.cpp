@@ -99,47 +99,29 @@ BOOL Manager::execute(DirFileHandler& handler) {
         return FALSE;
     }
 
-    // 3. Setting timetable
-
-    //HANDLE hTimer = CreateWaitableTimer(NULL, FALSE, TIME_TABLE_EVENT);
-    //if (hTimer == NULL) {
-    //    this->lastError = L"Failed to create timer: " + to_wstring(GetLastError()) + L"\r\n";
-    //    return FALSE;
-    //}
-
-    //LARGE_INTEGER liDueTime;
-    //liDueTime.QuadPart = -600000000LL; // 60 seconds
-
-    //if (!SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, FALSE)) {
-    //    this->lastError = L"Failed to set timer: " + to_wstring(GetLastError()) + L"\r\n";
-    //    return FALSE;
-    //}
-    
-    // Finished setup for events; Starting the processes;
-
     for (int i = 0; i < 3; ++i) {
         ZeroMemory(&si[i], sizeof(si[i]));
         ZeroMemory(&pi[i], sizeof(pi[i]));
         si[i].cb = sizeof(si[i]);
 
-        wstring cmdLine = handler.getCLIArguments(paths[i]);
+        std::wstring cmdLine = handler.getCLIArguments(paths[i]);
         wchar_t cmdLineArgs[4096];
         wcsncpy_s(cmdLineArgs, cmdLine.c_str(), _TRUNCATE);
 
         if (!CreateProcessW(
             NULL,
             cmdLineArgs,
-            NULL,   
-            NULL,   
-            FALSE, 
-            0,     
-            NULL,   
-            NULL,   
+            NULL,
+            NULL,
+            FALSE,
+            0,
+            NULL,
+            NULL,
             &si[i],
-            &pi[i] 
+            &pi[i]
         )) {
             wstring wideString = handler.ConvertToWString(paths[i]);
-            this->lastError = L"Process creation for " + wideString + L" failed: " + to_wstring(GetLastError())  +L"\r\n";
+            this->lastError = L"Process creation for " + wideString + L" failed: " + to_wstring(GetLastError()) + L"\r\n";
             // Clean up and return FALSE
             for (int j = 0; j <= i; j++) {
                 CloseHandle(pi[j].hProcess);
@@ -152,8 +134,12 @@ BOOL Manager::execute(DirFileHandler& handler) {
     HANDLE handles[] = { pi[0].hProcess, pi[1].hProcess, pi[2].hProcess };
 
     BOOL allProcessesCompleted = FALSE;
+
     while (!allProcessesCompleted) {
         // wait for all child processes to signal completion of a file
+
+        WaitForSingleObject(hInitial, INFINITE); // Wait for the deposit to process first day
+
         WaitForMultipleObjects(3, processingEvents, TRUE, INFINITE);
         for (int i = 0; i < 3; ++i) {
             ResetEvent(processingEvents[i]);
@@ -162,10 +148,12 @@ BOOL Manager::execute(DirFileHandler& handler) {
         // check if all child processes have completed all files
         if (WaitForMultipleObjects(3, finalEvents, TRUE, 0) == WAIT_OBJECT_0) {
             allProcessesCompleted = TRUE;
-        }
-        else {
-            // Allow children to move to the next file if they did not finish
             SetEvent(hMaster);
+        }
+        else
+        {
+            SetEvent(hMaster);
+            Sleep(100);
             ResetEvent(hMaster);
         }
     }
@@ -198,16 +186,17 @@ wstring Manager::getError()
 	return this->lastError;
 }
 
-
 BOOL Manager::populateEventHandles(HANDLE* eventHandles, LPCSTR* eventNames, int size) {
+   
+    for (int i = 0; i < size; ++i) {
+        eventHandles[i] = CreateEvent(NULL, TRUE, FALSE, eventNames[i]);
 
-    eventHandles[0] = CreateEvent(NULL, TRUE, FALSE, eventNames[0]);
-    eventHandles[1] = CreateEvent(NULL, TRUE, FALSE, eventNames[1]);
-    eventHandles[2] = CreateEvent(NULL, TRUE, FALSE, eventNames[2]);
-
-    for (int i = 0; i < 3; ++i) {
-        if (eventHandles[i] == NULL) {
-            return FALSE; 
+        if (eventHandles[i] == NULL || eventHandles[i] == INVALID_HANDLE_VALUE) {
+            // Cleanup previously created events before returning FALSE
+            for (int j = 0; j < i; ++j) {
+                CloseHandle(eventHandles[j]);
+            }
+            return FALSE;
         }
     }
 

@@ -91,7 +91,7 @@ int Deposit::handleMappedFiles(
         this->createOrOpenFiles(ERRORS_FILE);
         string errorMsg = "S-a încercat adaugarea produsului " + std::to_string(productInfo.getIdProduct())
             + " pe raftul " + std::to_string(productInfo.getShelveId())
-            + " care este deja ocupat de " + to_string(shelvesArray[productInfo.getShelveId()]) + "\n";
+            + " care este deja ocupat de " + to_string(shelvesArray[productInfo.getShelveId()]) + "\r\n";
         this->appendToFile(ERRORS_FILE, errorMsg);
         this->closeHandle(ERRORS_FILE);
     }

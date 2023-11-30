@@ -103,23 +103,23 @@ DWORD FileManipulation::openIfExists(DWORD fileType) {
 /**
 * Method responsible for deciding from which file to read and return text to console. Sold file or donation file should be pass to read from both.
 */
-wstring FileManipulation::readFromFile(DWORD fileType) {
+string FileManipulation::readFromFile(DWORD fileType) {
 
 	switch (fileType)
 	{
 	case ERRORS_FILE: return processErrorFile(fileType);
-	case DONATION_FILE | SOLD_FILE: return processSuccessFile();
+	default: return processSuccessFile();
 	}
 }
 
 /**
 * Method responsible for readinng from error file
 */
-wstring FileManipulation::processErrorFile(DWORD fileType){
+string FileManipulation::processErrorFile(DWORD fileType){
 	HANDLE fileHandler = this->getHandle(fileType);
-	wstring buffer;
+	string buffer;
 	DWORD bytesRead;
-	WCHAR readBuffer[4096]; // read the file 4kb by 4kb
+	CHAR readBuffer[4096]; // read the file 4kb by 4kb
 
 	while (true) {
 		BOOL readResult = ReadFile(
@@ -138,19 +138,33 @@ wstring FileManipulation::processErrorFile(DWORD fileType){
 		buffer.append(readBuffer);
 	}
 
+	CloseHandle(this->getHandle(fileType));
+
 	return buffer;
 }
 
 /**
 * Method responsible for readinng from donation and sold file
 */
-wstring FileManipulation::processSuccessFile() {
+string FileManipulation::processSuccessFile() {
+	DWORD res;
+	if ((res = openIfExists(DONATION_FILE)) == 0 || res == 2)
+	{
+		return "Error from opening DON " + to_string(GetLastError());
+	}
+
+	if ((res = openIfExists(SOLD_FILE)) == 0 || res == 2)
+	{
+		return "Error from opening SOLD " + to_string(GetLastError());
+	}
+
+
 	HANDLE donationHandle = this->getHandle(DONATION_FILE);
 	HANDLE soldHandle = this->getHandle(SOLD_FILE);
 
 	DWORD bytesRead;
-	INT32 donatedItems;
-	INT32 soldItems;
+	INT32 donatedItems = 0;
+	INT32 soldItems = 0;
 
 	if (!ReadFile(
 		donationHandle,
@@ -159,7 +173,7 @@ wstring FileManipulation::processSuccessFile() {
 		&bytesRead,
 		NULL
 	)) {
-		return L"";
+		return "Error from reading DON " + to_string(GetLastError());
 	}
 
 	if (!ReadFile(
@@ -169,13 +183,16 @@ wstring FileManipulation::processSuccessFile() {
 		&bytesRead,
 		NULL
 	)) {
-		return L"";
+		return "Error from reading SOLD " + to_string(GetLastError());;
 	}
 
-	wstringstream ss;
+	stringstream ss;
 
-	ss << "Number of sold items: " << to_wstring(soldItems) << "\r\t";
-	ss << "Number of donated items: " << to_wstring(donatedItems) << "\r\t";
+	ss << "Number of sold items: " << to_string(soldItems) << "\r\n";
+	ss << "Number of donated items: " << to_string(donatedItems) << "\r\n";
+
+	CloseHandle(donationHandle);
+	CloseHandle(soldHandle);
 
 	return ss.str();
 }

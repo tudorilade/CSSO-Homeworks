@@ -30,16 +30,16 @@ wstring DirFileHandler::getPathDir(DWORD typeOfDir) {
 /**
 * Method responsible for retrieving the final content of the requested files
 */
-wstring DirFileHandler::getContentForConsole()
+string DirFileHandler::getContentForConsole()
 {
 
     FileManipulation fHandler = FileManipulation();
 
 
-    //if (fHandler.openIfExists(ERRORS_FILE) == 2)
-    //{
-    //    return fHandler.readFromFile(ERRORS_FILE);
-    //}
+    if (fHandler.openIfExists(ERRORS_FILE) == 1)
+    {
+        return fHandler.readFromFile(ERRORS_FILE);
+    }
 
 	return fHandler.readFromFile(DONATION_FILE);
 }
@@ -164,8 +164,8 @@ BOOL DirFileHandler::createFile(LPCSTR path) {
     }
 
     DWORD bytesWritten;
-    DWORD bufferToWrite = 0;
-    if (!WriteFile(fileHandler, &bufferToWrite, sizeof(DWORD), &bytesWritten, NULL))
+    int bufferToWrite = 0;
+    if (!WriteFile(fileHandler, &bufferToWrite, sizeof(int), &bytesWritten, NULL))
     {   
         // Initialize the files with 0
         wstring widePath = ConvertToWString(path);

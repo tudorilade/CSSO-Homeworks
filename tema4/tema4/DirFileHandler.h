@@ -61,7 +61,7 @@ public:
 	DWORD setPathDir(wstring, DWORD);
 	DWORD setUpDirAndFiles();
 	wstring getPathDir(DWORD);
-	wstring getContentForConsole();
+	string getContentForConsole();
 	wstring getCLIArguments(LPCSTR);
 	wstring getLastError();
 	BOOL recursiveCreateDirectory(LPCSTR);

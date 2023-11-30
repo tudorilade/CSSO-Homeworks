@@ -25,10 +25,10 @@ private:
 	LPCSTR PATH_TO_ERRORS = "C:\\Facultate\\CSSO\\Week4\\Reports\\errors.txt";
 	HANDLE hErrors;
 
-	LPCSTR PATH_TO_DONATION = "C:\\Facultate\\CSSO\\Week4\\Reports\\donation.txt";
+	LPCSTR PATH_TO_DONATION = "C:\\Facultate\\CSSO\\Week4\\Reports\\Summary\\donations.txt";
 	HANDLE hDonation;
 
-	LPCSTR PATH_TO_SOLD = "C:\\Facultate\\CSSO\\Week4\\Reports\\sold.txt";
+	LPCSTR PATH_TO_SOLD = "C:\\Facultate\\CSSO\\Week4\\Reports\\Summary\\sold.txt";
 	HANDLE hSold;
 
 public:
@@ -39,8 +39,8 @@ public:
 	DWORD createOrOpenFiles(DWORD);
 	DWORD openIfExists(DWORD);
 	DWORD writeToFile(DWORD, string);
-	wstring processErrorFile(DWORD);
-	wstring processSuccessFile();
-	wstring readFromFile(DWORD);
+	string processErrorFile(DWORD);
+	string processSuccessFile();
+	string readFromFile(DWORD);
 	void closeHandle(DWORD);
 };
