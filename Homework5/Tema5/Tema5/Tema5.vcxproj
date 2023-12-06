@@ -43,7 +43,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -127,12 +127,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="constants.h" />
+    <ClInclude Include="DirFileHandler.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="Manager.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Tema5.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DirFileHandler.cpp" />
+    <ClCompile Include="Manager.cpp" />
     <ClCompile Include="Tema5.cpp" />
   </ItemGroup>
   <ItemGroup>

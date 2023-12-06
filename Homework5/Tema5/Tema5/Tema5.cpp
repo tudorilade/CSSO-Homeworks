@@ -4,18 +4,24 @@
 #include "framework.h"
 #include "Tema5.h"
 
+using namespace std;
+
 #define MAX_LOADSTRING 100
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+LPSTR linkBuffer;             // link buffer
+LPSTR matricolBuffer;     // matricol number buffer
+LPSTR newBuffer;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+void                CreateInterfaceElements(HWND hWnd);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -123,16 +129,59 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    HWND hLogWindow;
+    size_t sizeNewBuffer;
+    size_t initialSize = 15;
+    LPSTR initialMessage;
+    Manager manager;
+    initialMessage = (LPSTR)calloc(initialSize, sizeof(LPSTR));
+    strncpy_s(initialMessage, initialSize, "Requesting: ", strlen("Requesting: "));
+
     switch (message)
     {
+    case WM_CREATE:
+        CreateInterfaceElements(hWnd);
+        break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
-            // Parse the menu selections:
             switch (wmId)
             {
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+                break;
+            case ID_EXEC_BUTTON:
+                linkBuffer = (LPSTR)calloc(LINK_BUFFER_SIZE, sizeof(LPSTR));
+                matricolBuffer= (LPSTR)calloc(M_NUMBER_BUFFER_SIZE, sizeof(LPSTR));
+
+                GetDlgItemText(hWnd, ID_LINK, linkBuffer, LINK_BUFFER_SIZE);
+                GetDlgItemText(hWnd, ID_MATRICOL, matricolBuffer, M_NUMBER_BUFFER_SIZE);
+
+                sizeNewBuffer = strlen(linkBuffer) + strlen(matricolBuffer) + initialSize + 15;
+                newBuffer = (LPSTR)calloc(sizeNewBuffer, sizeof(LPSTR));
+
+                strncat_s(newBuffer, sizeNewBuffer, initialMessage, strlen(initialMessage));
+                strncat_s(newBuffer, sizeNewBuffer, linkBuffer, strlen(linkBuffer));
+                strncat_s(newBuffer, sizeNewBuffer, matricolBuffer, strlen(matricolBuffer));
+                newBuffer[strlen(newBuffer)] = 0;
+
+                hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW);
+
+
+                manager = Manager(linkBuffer, matricolBuffer);
+                if (!manager.execute())
+                {
+                    SetWindowText(hLogWindow, manager.getLastError().c_str());
+                    break;
+                }
+
+                SetWindowText(hLogWindow, manager.getResource());
+
+                free(linkBuffer);
+                free(matricolBuffer);
+                free(newBuffer);
+                sizeNewBuffer = 0;
+
                 break;
             case IDM_EXIT:
                 DestroyWindow(hWnd);
@@ -177,4 +226,40 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+
+/**
+* Function responsible for creating the buttons for:
+* -> selecting Deposit directory
+* -> select sold directory
+* -> run Management process
+*/
+void CreateInterfaceElements(HWND hWnd)
+{
+    
+    // edit for matricol number and link
+
+    CreateWindow("STATIC", "Link", WS_VISIBLE | WS_CHILD,
+        10, 10, 200, 20, hWnd, (HMENU)ID_LINK_SPAN, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
+        10, 30, 400, 20, hWnd, (HMENU)ID_LINK, hInst, NULL);
+
+    CreateWindow("STATIC", "Matricol Number", WS_VISIBLE | WS_CHILD,
+        10, 60, 200, 20, hWnd, (HMENU)ID_MATRICOL_SPAN, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
+        10, 80, 400, 20, hWnd, (HMENU)ID_MATRICOL, hInst, NULL);
+
+    CreateWindow("BUTTON", "Start requests", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        10, 120, 200, 30, hWnd, (HMENU)ID_EXEC_BUTTON, hInst, NULL);
+
+    CreateWindow("STATIC", "Requests Logs", WS_VISIBLE | WS_CHILD,
+        420, 10, 700, 20, hWnd, (HMENU)ID_MATRICOL_SPAN, hInst, NULL);
+
+    // Button to run the program with the entered data
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY,
+        420, 30, 700, 400, hWnd, (HMENU)ID_LOG_WINDOW, hInst, NULL);
+
 }
