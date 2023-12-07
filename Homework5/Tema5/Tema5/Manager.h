@@ -1,20 +1,43 @@
 #pragma once
 
 #include "DirFileHandler.h"
+#include "Client.h"
 
 class Manager
 {
 private:
-	LPSTR linkResource;
+
+	LPSTR assignHomework;
+
+	LPSTR serverResource;
 	DWORD sizeLinkResource;
+	
+	LPSTR nrMatricol;
+	DWORD sizeNrMatricol;
+
+	LPSTR relativePath;
+	DWORD sizeRelativePath;
+
 	string lastError;
+	DWORD numberOfGetRequests;
+	DWORD numberOFWriteRequests;
+
+	HWND logger;
+
+	DirFileHandler fileHandler;
+	Client client;
 
 public:
 	Manager() {};
-	Manager(LPSTR, LPSTR);
+	Manager(LPSTR, DWORD, LPSTR, DWORD, HWND&);
 	LPSTR getResource();
 	DWORD getSizeResource();
 	DWORD execute();
+	BOOL startProcessing();
+	BOOL downloadConfigFile();
 	string getLastError();
+	void LOG(LPCSTR);
+	void LOG(LPSTR);
+
 };
 

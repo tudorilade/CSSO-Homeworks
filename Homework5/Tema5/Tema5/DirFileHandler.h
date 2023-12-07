@@ -11,6 +11,7 @@
 
 #define WEEK_LAB_DIR 1
 #define DOWNLOADS_DIR 2
+#define MY_CONFIG 3
 
 using namespace std;
 
@@ -21,14 +22,19 @@ private:
 	string lastError;
 	LPCSTR WEEK_LAB_PATH = "C:\\Facultate\\CSSO\\Week5";
 	LPCSTR DOWNLOAD_DIR_PATH = "C:\\Facultate\\CSSO\\Week5\\Downloads";
+	LPCSTR MY_CONFIG_PATH = "C:\\Facultate\\CSSO\\Week5\\myconfig.txt";
 
+	HANDLE myConfig;
 
 public:
 	DWORD setUpDirAndFiles();
-	string getPathDir(DWORD);
+	LPCSTR getPath(DWORD);
 	string getLastError();
 	BOOL recursiveCreateDirectory(LPCSTR);
 	BOOL creationOfFileAndDirs(LPCSTR, DWORD);
-	BOOL createFile(LPCSTR);
+	HANDLE createFile(LPCSTR);
+	HANDLE openFile(LPCSTR);
+	BOOL writeToFile(HANDLE, LPCSTR, DWORD);
+	BOOL appendToFile(HANDLE, LPCSTR, DWORD);
 };
 

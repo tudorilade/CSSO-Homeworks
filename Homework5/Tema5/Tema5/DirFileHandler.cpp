@@ -1,10 +1,11 @@
 #include "DirFileHandler.h"
 
 
-string DirFileHandler::getPathDir(DWORD typeOfDir) {
+LPCSTR DirFileHandler::getPath(DWORD typeOfDir) {
     switch (typeOfDir) {
     case WEEK_LAB_DIR: return this->WEEK_LAB_PATH;
     case DOWNLOADS_DIR: return this->DOWNLOAD_DIR_PATH;
+    case MY_CONFIG: return this->MY_CONFIG_PATH;
     }
     return "";
 }
@@ -98,12 +99,66 @@ BOOL DirFileHandler::recursiveCreateDirectory(LPCSTR directoryPath) {
 
 
 /**
-* @brief Method responsible for creating the "sumar.txt" file.
+* @brief Method responsible for opening an existing file.
 *
-* @return TRUE if sumar.txt was created and sets sumarFile inside class. If the file exists, it resets the content inside.
-    FALSE otherwise
+* @return a handle to the file
 */
-BOOL DirFileHandler::createFile(LPCSTR path) {
+HANDLE DirFileHandler::openFile(LPCSTR path) {
+    HANDLE myConfigHandler = CreateFile(
+        path,
+        GENERIC_WRITE,
+        NULL,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
+    return myConfigHandler;
+}
 
+/**
+* @brief Method responsible for creating the file if it does not exist, or truncates an existing one.
+*
+* @return a handle to the file
+*/
+HANDLE DirFileHandler::createFile(LPCSTR path)
+{
+    HANDLE myConfigHandler = CreateFile(
+        path,
+        GENERIC_WRITE,
+        NULL,
+        NULL,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
+    return myConfigHandler;
+
+}
+
+
+/**
+* Method responsible for writing a buffer of size bufferSize to a handle file
+* 
+* @return true in case of successful writing, FALSE otherwise
+*/
+BOOL DirFileHandler::writeToFile(HANDLE handle, LPCSTR buffer, DWORD bufferSize) {
+    DWORD bytesWritten;
+    if (!WriteFile(handle, buffer, bufferSize, &bytesWritten, NULL)) { return FALSE; }
+    if (bufferSize != bytesWritten) { return FALSE; }
+    return TRUE;
+}
+
+
+/**
+* Method responsible for appending a buffer of size bufferSize to the end of a handle file
+*
+* @return true in case of successful appending, FALSE otherwise
+*/
+BOOL DirFileHandler::appendToFile(HANDLE handle, LPCSTR buffer, DWORD bufferSize) {
+    DWORD bytesWritten;
+    SetFilePointer(handle, 0, NULL, FILE_END);
+    if (!WriteFile(handle, buffer, bufferSize, &bytesWritten, NULL)) { return FALSE; }
+    if (bufferSize != bytesWritten) { return FALSE; }
     return TRUE;
 }

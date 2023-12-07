@@ -14,7 +14,7 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 LPSTR linkBuffer;             // link buffer
 LPSTR matricolBuffer;     // matricol number buffer
-LPSTR newBuffer;
+LPSTR requestLink;        
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -130,12 +130,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND hLogWindow;
-    size_t sizeNewBuffer;
-    size_t initialSize = 15;
-    LPSTR initialMessage;
+    size_t sizeLink;
     Manager manager;
-    initialMessage = (LPSTR)calloc(initialSize, sizeof(LPSTR));
-    strncpy_s(initialMessage, initialSize, "Requesting: ", strlen("Requesting: "));
+    size_t sizeMatricol;
 
     switch (message)
     {
@@ -157,30 +154,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 GetDlgItemText(hWnd, ID_LINK, linkBuffer, LINK_BUFFER_SIZE);
                 GetDlgItemText(hWnd, ID_MATRICOL, matricolBuffer, M_NUMBER_BUFFER_SIZE);
 
-                sizeNewBuffer = strlen(linkBuffer) + strlen(matricolBuffer) + initialSize + 15;
-                newBuffer = (LPSTR)calloc(sizeNewBuffer, sizeof(LPSTR));
+                sizeMatricol = strlen(matricolBuffer) + 1;
+                sizeLink = strlen(linkBuffer) + 1;
 
-                strncat_s(newBuffer, sizeNewBuffer, initialMessage, strlen(initialMessage));
-                strncat_s(newBuffer, sizeNewBuffer, linkBuffer, strlen(linkBuffer));
-                strncat_s(newBuffer, sizeNewBuffer, matricolBuffer, strlen(matricolBuffer));
-                newBuffer[strlen(newBuffer)] = 0;
 
                 hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW);
 
+                manager = Manager(
+                    linkBuffer, sizeLink,
+                    matricolBuffer, sizeMatricol,
+                    hLogWindow
+                );
 
-                manager = Manager(linkBuffer, matricolBuffer);
                 if (!manager.execute())
                 {
-                    SetWindowText(hLogWindow, manager.getLastError().c_str());
+                    manager.LOG(manager.getLastError().c_str());
                     break;
                 }
 
-                SetWindowText(hLogWindow, manager.getResource());
-
                 free(linkBuffer);
                 free(matricolBuffer);
-                free(newBuffer);
-                sizeNewBuffer = 0;
+                free(requestLink);
+                sizeLink = 0;
 
                 break;
             case IDM_EXIT:
@@ -240,7 +235,7 @@ void CreateInterfaceElements(HWND hWnd)
     
     // edit for matricol number and link
 
-    CreateWindow("STATIC", "Link", WS_VISIBLE | WS_CHILD,
+    CreateWindow("STATIC", "Server address", WS_VISIBLE | WS_CHILD,
         10, 10, 200, 20, hWnd, (HMENU)ID_LINK_SPAN, hInst, NULL);
 
     CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
