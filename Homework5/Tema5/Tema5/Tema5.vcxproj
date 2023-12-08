@@ -133,6 +133,7 @@
     <ClInclude Include="DirFileHandler.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Manager.h" />
+    <ClInclude Include="RequestType.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Tema5.h" />
@@ -142,6 +143,7 @@
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="DirFileHandler.cpp" />
     <ClCompile Include="Manager.cpp" />
+    <ClCompile Include="RequestType.cpp" />
     <ClCompile Include="Tema5.cpp" />
   </ItemGroup>
   <ItemGroup>

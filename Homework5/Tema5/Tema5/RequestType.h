@@ -6,11 +6,9 @@ class RequestType
 	private:
 		int req_type;
 		char* path;
-		int id;
 	public:
-		RequestType(int, char*, int);
+		RequestType(int, char*);
 		int getReqType();
 		char* getPath();
-		int getId();
 };	
 

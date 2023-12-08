@@ -2,6 +2,8 @@
 
 #include "DirFileHandler.h"
 #include "Client.h"
+#include "RequestType.h"
+#include "vector"
 
 class Manager
 {
@@ -38,6 +40,9 @@ public:
 	string getLastError();
 	void LOG(LPCSTR);
 	void LOG(LPSTR);
+
+	vector<RequestType> processLines();
+	RequestType processLineAndGetRequest(const char*);
 
 };
 
