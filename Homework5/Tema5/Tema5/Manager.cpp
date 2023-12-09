@@ -240,16 +240,14 @@ BOOL Manager::processGetRequest(RequestType& req)
 {
 	HINTERNET hGetRequest = client.get(req.getPath());
 	if (hGetRequest == NULL) { return FALSE; }
-
 	DWORD bytesRead = 0;
-	DWORD number;
-	// Read data into the buffer
-	char buffer[sizeof(DWORD)];
-	memset(buffer, 0, sizeof(DWORD));
+	char response[BUFFER_SIZE];
+	// Read data into the buffer;
+	memset(response, 0, BUFFER_SIZE);
 
-	if (!InternetReadFile(hGetRequest, buffer, sizeof(DWORD), &bytesRead))
+	if (!InternetReadFile(hGetRequest, response, BUFFER_SIZE, &bytesRead))
 	{
-		this->lastError = "Can't retrieve the request. Error code: " + std::to_string(GetLastError());
+		this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
 		return FALSE;
 	}
 
@@ -258,13 +256,13 @@ BOOL Manager::processGetRequest(RequestType& req)
 		this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
 		return FALSE;
 	}
+	
 
-	memcpy(&number, buffer, sizeof(DWORD));
-	this->lastRequestResponse = number;
+	this->lastRequestResponse = (char*)calloc(bytesRead, sizeof(char*));
 	this->LOG("Read from current request ");
 	this->LOG(req.getPath());
 	this->LOG(" response ");
-	this->LOG(buffer);
+	this->LOG(response);
 	this->LOG("\r\n");
 	return TRUE;
 }

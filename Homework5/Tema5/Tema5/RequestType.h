@@ -9,11 +9,14 @@ class RequestType
 		int req_type;
 		char* path;
 		unsigned int route;
+		char* valueFromRoute;
 
 	public:
 		RequestType(int, char*, unsigned int);
 		int getReqType();
-		char* getPath();
 		unsigned int getRoute();
+
+		char* getPath();
+		char* getValueFromRoute();
 };	
 

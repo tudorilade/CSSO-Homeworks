@@ -29,7 +29,7 @@ private:
 	DirFileHandler fileHandler;
 	Client client;
 
-	DWORD lastRequestResponse;
+	char* lastRequestResponse;
 
 public:
 	Manager() {};
