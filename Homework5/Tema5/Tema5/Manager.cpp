@@ -97,15 +97,8 @@ vector<RequestType> Manager::processLines() {
 			if (*p == '\n') {
 				currentLine[currentLineIndex] = '\0';
 
-				///add to vector of products 
-				/*ProductInfo product = processLineAndGetProduct(currentLine);
-				if (product.getIdProduct() != -1) {
-					// Only add valid products to the vector
-					productInformation.push_back(product);
-				}*/
-				this->LOG(currentLine);
-				this->LOG("\r\n");
 				RequestType request = this->processLineAndGetRequest(currentLine);
+
 				this->LOG(request.getPath());
 				this->LOG("\r\n");
 				if (request.getReqType() != -1) {
@@ -132,31 +125,33 @@ vector<RequestType> Manager::processLines() {
 }
 
 RequestType Manager::processLineAndGetRequest(const char* line) {
-	int id,reqType;
+	int reqType = -1;
 	char path[50];
 
-	int requestTypeInt = -1;
 	const char* getPtr = strstr(line, "GET:");
 	const char* postPtr = strstr(line, "POST:");
 	const char* pathPtr = strstr(line, ".com/");
 
 	if (getPtr != NULL) {
-		reqType = 1; // 1 pentru GET
+		reqType = 1; // 1 for GET
+
 		getPtr += strlen("GET:");
 	}
 	else if (postPtr != NULL) {
-		reqType = 2; //2 pentru POST
-
+		reqType = 2; // 2 for POST
 	}
 	if (pathPtr != NULL) {
 		pathPtr += strlen(".com/");
-		strncpy_s(path, sizeof(path), pathPtr, sizeof(path) - 2);
+		size_t pathLength = strcspn(pathPtr, "\0"); // Find the length of the path
+		if (pathLength < sizeof(path) - 1) {
+			// Copy the path and null-terminate
+			memcpy(path, pathPtr, pathLength);
+			path[pathLength] = '\0';
+		}
+
 	}
-	RequestType  r = RequestType(requestTypeInt, path);
-	this->LOG(r.getPath());
 
-
-	return RequestType(requestTypeInt, path);
+	return RequestType(reqType, path);
 }
 BOOL Manager::startProcessing()
 {
@@ -194,7 +189,7 @@ BOOL Manager::startProcessing()
 
 	for (RequestType& req : requests) {
 		this->LOG(req.getPath());
-		
+		this->LOG("\r\n");
 	}
 	
 
