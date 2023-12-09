@@ -108,8 +108,7 @@ BOOL Manager::proccessConfigFile(vector<RequestType>& requestsVector) {
 				}
 				else {
 					this->LOG("Unknown request for: ");
-					this->LOG(request.getPath());
-					this->LOG("\r\n");
+					this->LOG(request.getPath(), TRUE);
 				}
 
 				currentLineIndex = 0;
@@ -171,8 +170,7 @@ BOOL Manager::startProcessing()
 	// 3. write to myConfig
 
 	this->LOG("Starting session with ");
-	this->LOG(this->getResource());
-	this->LOG("\r\n");
+	this->LOG(this->getResource(), TRUE);
 
 	client.startSession(this->getResource(), HTTPS_PROTOCOL);
 
@@ -182,7 +180,7 @@ BOOL Manager::startProcessing()
 		return FALSE;
 	}
 
-	this->LOG("Session established! \r\n");
+	this->LOG("Session established!", TRUE);
 
 	if (!downloadConfigFile())
 	{
@@ -199,13 +197,13 @@ BOOL Manager::startProcessing()
 
 	for (RequestType& req : requests) {
 		//send requests
+		this->LOG("\r\n", TRUE);
 		if (req.getRoute() == DO_HOMEWORK_ROUTE) {
 			if (!this->processDoHomeworkRequest(req)) {
 				this->LOG("Request for route: ");
 				this->LOG(req.getPath());
 				this->LOG(" couldn't be process. Reason: ");
-				this->LOG(this->lastError.c_str());
-				this->LOG("\r\n");
+				this->LOG(this->lastError.c_str(), TRUE);
 			}
 		}
 		else if (req.getRoute() == DO_ADDITIONAL_ROUTE) {
@@ -213,13 +211,17 @@ BOOL Manager::startProcessing()
 				this->LOG("Request for route: ");
 				this->LOG(req.getPath());
 				this->LOG(" couldn't be process. Reason: ");
-				this->LOG(this->lastError.c_str());
-				this->LOG("\r\n");
+				this->LOG(this->lastError.c_str(), TRUE);
 			}
 		}
 	}
 
+	this->LOG("\r\n", TRUE);
 	this->LOG("Finalized parsing the config file! \r\n");
+
+	DWORD totalReq = numberOfGetRequests + numberOfPostRequests;
+	this->LOG("Total of requests: ");
+	this->LOG(to_string(totalReq).c_str(), TRUE);
 
 	return TRUE;
 }
@@ -238,48 +240,117 @@ BOOL Manager::processDoHomeworkRequest(RequestType& req)
 
 BOOL Manager::processGetRequest(RequestType& req)
 {
-	HINTERNET hGetRequest = client.get(req.getPath());
-	if (hGetRequest == NULL) { return FALSE; }
-	DWORD bytesRead = 0;
-	char response[BUFFER_SIZE];
-	memset(response, 0, BUFFER_SIZE);
-
-	if (!InternetReadFile(hGetRequest, response, BUFFER_SIZE, &bytesRead))
-	{
-		this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
-		return FALSE;
-	}
-
-	if (bytesRead == 0)
-	{
-		this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
-		return FALSE;
-	}
+	this->LOG("GET: Sending request to ");
+	this->LOG(req.getPath(), TRUE);
 	
-	this->lastRequestResponse = (char*)calloc(bytesRead, sizeof(char*));
+	HINTERNET hGetRequest = client.get(req.getPath(), numberOfGetRequests);
+	if (hGetRequest == NULL) {
+		this->lastError = "Failed to get request. Error code: " + to_string(GetLastError());
+		return FALSE;
+	}
+
+	DWORD bytesRead = 0;
+	char response[BUFFER_SIZE] = { 0 };
+
+	if (!InternetReadFile(hGetRequest, response, BUFFER_SIZE - 1, &bytesRead)) {
+		this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
+		InternetCloseHandle(hGetRequest);
+		return FALSE;
+	}
+
+	if (bytesRead == 0) {
+		this->lastError = "Empty response. Error code: " + to_string(GetLastError());
+		InternetCloseHandle(hGetRequest);
+		return FALSE;
+	}
+
+	InternetCloseHandle(hGetRequest);
+
+	this->lastRequestResponse = new char[bytesRead + 1];
+	strcpy_s(this->lastRequestResponse, bytesRead + 1, response);
+	this->lastRequestResponse[bytesRead] = '\0';
+
 	this->LOG("Read from current request ");
 	this->LOG(req.getPath());
 	this->LOG(" response ");
 	this->LOG(response);
 	this->LOG("\r\n");
+
+	string downloadPath = fileHandler.getPath(DOWNLOADS_DIR);
+	string reqValue = req.getValueFromRoute();
+	string extension = ".txt";
+	string fullPath = downloadPath + "\\" + reqValue + extension;
+	const char* fPath = fullPath.c_str();
+
+	char* dumpBuffer = new char[strlen(response) + strlen("\n") + 1];
+	strcpy_s(dumpBuffer, strlen(response) + strlen("\n") + 1, response);
+	strcat_s(dumpBuffer, strlen(response) + strlen("\n") + 1, "\n");
+
+	HANDLE hFileToValue = fileHandler.openFile(fPath);
+
+	if (fileHandler.fileExistsOrInvalid(hFileToValue) == 0) {
+		// file does not exist; create and write
+		hFileToValue = fileHandler.createFile(fPath);
+		if (fileHandler.fileExistsOrInvalid(hFileToValue) != 1) {
+			this->lastError = "Can't open file. Error code: " + to_string(GetLastError());
+			delete[] dumpBuffer;
+			return FALSE;
+		}
+		if (!fileHandler.writeToFile(hFileToValue, dumpBuffer, strlen(dumpBuffer))) {
+			this->lastError = "Can't write to file. Error code: " + to_string(GetLastError());
+			CloseHandle(hFileToValue);
+			delete[] dumpBuffer;
+			return FALSE;
+		}
+		CloseHandle(hFileToValue);
+		this->LOG("Wrote to file");
+		this->LOG(fPath, TRUE);
+		delete[] dumpBuffer;
+		return TRUE;
+
+	}
+	else if (fileHandler.fileExistsOrInvalid(hFileToValue) == 2) {
+		this->lastError = "Can't open file. Error code: " + to_string(GetLastError());
+		delete[] dumpBuffer;
+		return FALSE;
+	}
+
+	if (!fileHandler.appendToFile(hFileToValue, dumpBuffer, strlen(dumpBuffer))) {
+		this->lastError = "Can't append to file. Error code: " + to_string(GetLastError());
+		CloseHandle(hFileToValue);
+		delete[] dumpBuffer;
+		return FALSE;
+	}
+	this->LOG("Appended content to file", TRUE);
+	this->LOG(fPath, TRUE);
+	CloseHandle(hFileToValue);
+	delete[] dumpBuffer;
 	return TRUE;
 }
+
 
 BOOL Manager::proccessPostRequest(RequestType& req)
 {
-
-
+	string postData = "id=" + string(nrMatricol) + "&value=" + lastRequestResponse; // Replace with actual data
+	this->LOG("POST: Sending request to route: ");
+	this->LOG(req.getPath());
+	this->LOG("?");
+	this->LOG(postData.c_str(), TRUE);
+	HINTERNET hPostRequest = client.post(req.getPath(), postData, numberOfPostRequests);
+	if (hPostRequest == NULL) {
+		this->lastError = "Failed to post request. Error code: " + std::to_string(GetLastError());
+		return FALSE;
+	}
 	return TRUE;
 }
 
-
-
 BOOL Manager::processAditionalHomework(RequestType& req)
 {
-	HINTERNET hGetRequest = client.get(req.getPath());
-	if (hGetRequest == NULL) { return FALSE; }
-	
+	this->LOG("GET: Sending request to ");
+	this->LOG(req.getPath(), TRUE);
 
+	HINTERNET hGetRequest = client.get(req.getPath(), numberOfGetRequests);
+	if (hGetRequest == NULL) { return FALSE; }
 	HANDLE hFile;
 	//construct file Name
 
@@ -297,8 +368,6 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 	{
 		hFile = fileHandler.openFile(fileName);
 		if (hFile == INVALID_HANDLE_VALUE) {
-
-
 			return FALSE;
 		}
 	}
@@ -327,14 +396,8 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 		return FALSE;
 	}
 
-	this->LOG("Am trimis request de la ");
-	this->LOG(req.getPath());
-	this->LOG("si am primit ");
 	this->lastRequestResponse = (char*)calloc(bytesRead + 1, sizeof(char)); // +1 for null-terminator
-
 	strncpy_s(this->lastRequestResponse, bytesRead + 1, buffer, bytesRead);
-	this->LOG(lastRequestResponse);
-	this->LOG("\r\n");
 
 	char bufferDUMPED[50];
 	strcpy_s(bufferDUMPED, 50, this->lastRequestResponse);
@@ -342,15 +405,21 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 	if (!fileHandler.appendToFile(hFile, bufferDUMPED, strlen(bufferDUMPED))) {
 		return FALSE;
 	}
+
+	this->LOG("Response get: ");
+	this->LOG(buffer, TRUE);
+
 	while (strcmp(buffer, "0") != 0) {
 		size_t sizeOfNewPath = strlen("dohomework_additional/") + strlen(buffer) + 1; // +1 for null-terminator
 		char* newPath = new char[sizeOfNewPath];
 		strcpy_s(newPath, sizeOfNewPath, "dohomework_additional/");
 		strcat_s(newPath, sizeOfNewPath, buffer);
-		this->LOG("Fac alt request cu path-ul: ");
-		this->LOG(newPath);
-		this->LOG("\r\n");
+
+		this->LOG("GET: Sending request to ");
+		this->LOG(newPath, TRUE);
+
 		hGetRequest = client.get(newPath);
+		numberOfGetRequests++;
 		bytesRead = 0;
 		//empty the buffer
 		memset(buffer, 0, sizeof(DWORD));
@@ -369,10 +438,8 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 
 		// Use strncpy_s safely
 		strncpy_s(this->lastRequestResponse, bytesRead + 1, buffer, bytesRead);
-		this->LOG("Am primit : ");
-		this->LOG(this->lastRequestResponse);
-		this->LOG("\r\n");
-		
+		this->LOG("Response get: ");
+		this->LOG(buffer, TRUE);
 		char* dumpBuffer = new char[strlen(buffer) + strlen("\n") + 1];
 		strcpy_s(dumpBuffer, strlen(buffer) + strlen("\n") + 1, buffer);
 		strcat_s(dumpBuffer, strlen(buffer) + strlen("\n") + 1, "\n");
@@ -387,30 +454,25 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 
 	CloseHandle(hFile);
 	InternetCloseHandle(hGetRequest);
-
-
 	return TRUE;
 }
-
-
 
 
 BOOL Manager::downloadConfigFile()
 {
 	this->LOG("Trying to access resource from route ");
-	this->LOG(this->relativePath);
-	this->LOG("\r\n");
+	this->LOG(this->relativePath, TRUE);
 
 	HINTERNET hRequest = client.get(this->relativePath);
 
-	this->LOG("Request successful !\r\n");
+	this->LOG("Request successful !", TRUE);
 	
 	if (hRequest == NULL) { return FALSE; }
 
 	char buffer[4096];
 	DWORD bytesRead;
 	
-	this->LOG("Creating and writing response to myconfig.txt\r\n");
+	this->LOG("Creating and writing response to myconfig.txt", TRUE);
 	HANDLE configHandle = fileHandler.createFile(fileHandler.getPath(MY_CONFIG));
 	if (configHandle == INVALID_HANDLE_VALUE) { return FALSE; }
 
@@ -419,7 +481,7 @@ BOOL Manager::downloadConfigFile()
 	}
 
 	CloseHandle(configHandle);
-	this->LOG("Content successfully written to myconfig.txt\r\n");
+	this->LOG("Content successfully written to myconfig.txt", TRUE);
 	InternetCloseHandle(hRequest);
 	return TRUE;
 }
@@ -437,4 +499,24 @@ void Manager::LOG(LPSTR buffer)
 	int length = GetWindowTextLength(logger);
 	SendMessage(logger, EM_SETSEL, (WPARAM)length, (LPARAM)length);
 	SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)buffer);
+}
+
+void Manager::LOG(LPCSTR buffer, BOOL addNewLine)
+{
+	int length = GetWindowTextLength(logger);
+	SendMessage(logger, EM_SETSEL, (WPARAM)length, (LPARAM)length);
+	SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)buffer);
+	if (addNewLine) {
+		SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)"\r\n");
+	}
+}
+
+void Manager::LOG(LPSTR buffer, BOOL addNewLine)
+{
+	int length = GetWindowTextLength(logger);
+	SendMessage(logger, EM_SETSEL, (WPARAM)length, (LPARAM)length);
+	SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)buffer);
+	if (addNewLine) {
+		SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)"\r\n");
+	}
 }

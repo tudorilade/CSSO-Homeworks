@@ -21,15 +21,15 @@ private:
 	DWORD sizeRelativePath;
 
 	string lastError;
-	DWORD numberOfGetRequests;
-	DWORD numberOFWriteRequests;
 
 	HWND logger;
 
 	DirFileHandler fileHandler;
 	Client client;
 
-	char* lastRequestResponse;
+	char* lastRequestResponse = NULL;
+	DWORD numberOfGetRequests = 0;
+	DWORD numberOfPostRequests = 0;
 
 public:
 	Manager() {};
@@ -42,6 +42,8 @@ public:
 	string getLastError();
 	void LOG(LPCSTR);
 	void LOG(LPSTR);
+	void LOG(LPCSTR, BOOL);
+	void LOG(LPSTR, BOOL);
 
 	BOOL proccessConfigFile(vector<RequestType>&);
 	RequestType processLineAndGetRequest(const char*);

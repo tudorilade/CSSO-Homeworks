@@ -28,18 +28,19 @@ public:
 	Client();
 	void openInternetConnection();
 	void startSession(LPCSTR, DWORD);
+	void closeHandles();
 
 	BOOL isHandleValid(HINTERNET);	
 	BOOL downloadFile(HINTERNET, LPCSTR, LPCSTR);
 	
 	HINTERNET getHandle(DWORD);
+	HINTERNET get(LPSTR, DWORD&);
+	HINTERNET post(LPSTR, const string&, DWORD&);
 	HINTERNET get(LPSTR);
-	
+	HINTERNET post(LPSTR, const string&);
+
 	LPCSTR getLastError();
-	LPCSTR post(LPSTR, LPCSTR);
 	LPCSTR formatResource(LPCSTR, DWORD);
-	
 	LPSTR constructUrlPath(LPSTR, LPSTR);
-	void closeHandles();
 };
 

@@ -80,6 +80,33 @@ LPCSTR Client::formatResource(LPCSTR resource, DWORD protocol)
 /**
 * Method responsible for sending a GET request to a route from session
 */
+HINTERNET Client::get(LPSTR route, DWORD& getRequests)
+{
+	HINTERNET hRequest = HttpOpenRequest(session, "GET", route, NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
+	if (!hRequest) { return NULL; }
+	if (!HttpSendRequest(hRequest, NULL, 0, NULL, 0)) { return NULL; }
+	getRequests++;
+	return hRequest;
+}
+
+
+HINTERNET Client::post(LPSTR route, const string& postData, DWORD& postRequests)
+{
+	LPCSTR headers = "Content-Type: application/x-www-form-urlencoded";
+	HINTERNET hRequest = HttpOpenRequest(session, "POST", route, NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
+	if (!hRequest) { return NULL; }
+	if (!HttpSendRequest(hRequest, headers, -1, const_cast<char*>(postData.c_str()), postData.length())) {
+		InternetCloseHandle(hRequest);
+		return NULL;
+	}
+	postRequests++;
+	return hRequest;
+}
+
+
+/**
+* Method responsible for sending a GET request to a route from session
+*/
 HINTERNET Client::get(LPSTR route)
 {
 	HINTERNET hRequest = HttpOpenRequest(session, "GET", route, NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
@@ -89,10 +116,16 @@ HINTERNET Client::get(LPSTR route)
 }
 
 
-LPCSTR Client::post(LPSTR resource, LPCSTR buffer)
+HINTERNET Client::post(LPSTR route, const string& postData)
 {
-
-	return "";
+	LPCSTR headers = "Content-Type: application/x-www-form-urlencoded";
+	HINTERNET hRequest = HttpOpenRequest(session, "POST", route, NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
+	if (!hRequest) { return NULL; }
+	if (!HttpSendRequest(hRequest, headers, -1, const_cast<char*>(postData.c_str()), postData.length())) {
+		InternetCloseHandle(hRequest);
+		return NULL;
+	}
+	return hRequest;
 }
 
 

@@ -8,7 +8,7 @@
 #define LINK_BUFFER_SIZE 1024
 #define M_NUMBER_BUFFER_SIZE 1024
 #define BUFFER_SIZE 1024
-
+#define SIZE_NEW_LINE 2
 //type of request TEO added
 
 #define GET_REQ 1

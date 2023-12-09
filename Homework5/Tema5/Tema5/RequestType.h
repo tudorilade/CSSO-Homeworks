@@ -15,8 +15,6 @@ class RequestType
 		RequestType(int, char*, unsigned int);
 		int getReqType();
 		unsigned int getRoute();
-
 		char* getPath();
 		char* getValueFromRoute();
 };	
-
