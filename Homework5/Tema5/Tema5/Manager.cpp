@@ -188,8 +188,28 @@ BOOL Manager::startProcessing()
 	
 
 	for (RequestType& req : requests) {
-		this->LOG(req.getPath());
-		this->LOG("\r\n");
+		//send requests
+		if (strcmp(req.getPath(), "dohomework") == 0) {
+			if (req.getReqType() == 1) { //get request
+				HINTERNET hGetRequest = client.get(req.getPath());
+				if(hGetRequest == NULL) { return FALSE; }
+
+
+
+
+			}
+			else if (req.getReqType() == 2) { //post request
+
+			}
+
+		}
+		else if (strcmp(req.getPath(), "dohomework_additional") == 0) {
+
+
+		}
+
+
+
 	}
 	
 
