@@ -242,7 +242,6 @@ BOOL Manager::processGetRequest(RequestType& req)
 	if (hGetRequest == NULL) { return FALSE; }
 	DWORD bytesRead = 0;
 	char response[BUFFER_SIZE];
-	// Read data into the buffer;
 	memset(response, 0, BUFFER_SIZE);
 
 	if (!InternetReadFile(hGetRequest, response, BUFFER_SIZE, &bytesRead))
@@ -257,7 +256,6 @@ BOOL Manager::processGetRequest(RequestType& req)
 		return FALSE;
 	}
 	
-
 	this->lastRequestResponse = (char*)calloc(bytesRead, sizeof(char*));
 	this->LOG("Read from current request ");
 	this->LOG(req.getPath());

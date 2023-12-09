@@ -139,6 +139,31 @@ HANDLE DirFileHandler::createFile(LPCSTR path)
 
 
 /**
+* Method responsible for deciding if a handle is invalid, and return the appropiate parameter
+*/
+DWORD DirFileHandler::fileExistsOrInvalid(HANDLE hFile)
+{
+    if (hFile == INVALID_HANDLE_VALUE)
+    {
+        DWORD dwError = GetLastError();
+        if (dwError == ERROR_FILE_NOT_FOUND || dwError == ERROR_PATH_NOT_FOUND)
+        {
+            return 0; // File does not exist
+        }
+        else
+        {
+            return 2; // File exists but some other error occurred
+        }
+    }
+
+    return 1;
+}
+
+
+
+
+
+/**
 * Method responsible for writing a buffer of size bufferSize to a handle file
 * 
 * @return true in case of successful writing, FALSE otherwise
