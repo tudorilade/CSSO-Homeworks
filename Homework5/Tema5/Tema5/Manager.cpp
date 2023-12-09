@@ -63,34 +63,38 @@ DWORD Manager::execute()
 	}
 
 	this->client.closeHandles();
-
 	this->LOG("Finalized processing..... \r\n");
 
 	return 1;
 }
 
-vector<RequestType> Manager::processLines() {
+BOOL Manager::proccessConfigFile(vector<RequestType>& requestsVector) {
 
 	//open wanted file which holds the requests information
 	HANDLE hReqFile = CreateFile(
-		"C:\\Facultate\\CSSO\\Week5\\myconfig.txt",
+		this->fileHandler.getPath(MY_CONFIG),
 		GENERIC_READ,
 		0,
 		NULL,
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL,
-		NULL);
+		NULL
+	);
+
+	if (hReqFile == INVALID_HANDLE_VALUE) { 
+		this->lastError = "Error opening config file. Error code: " + to_string(GetLastError());
+		return FALSE; 
+	}
 
 	vector<RequestType> temp_Reqs;
 	//go line by line
 	DWORD dwBytesRead;
-	const DWORD bufferSize = 1024;
-	char buffer[bufferSize];
+	char buffer[BUFFER_SIZE];
 
-	char currentLine[bufferSize];
+	char currentLine[BUFFER_SIZE];
 	size_t currentLineIndex = 0;
 
-	while (ReadFile(hReqFile, buffer, bufferSize - 1, &dwBytesRead, NULL) && dwBytesRead > 0) {
+	while (ReadFile(hReqFile, buffer, BUFFER_SIZE - 1, &dwBytesRead, NULL) && dwBytesRead > 0) {
 		buffer[dwBytesRead] = '\0'; // Null-terminate the buffer
 
 		for (char* p = buffer; *p; ++p) {
@@ -101,9 +105,14 @@ vector<RequestType> Manager::processLines() {
 
 				this->LOG(request.getPath());
 				this->LOG("\r\n");
+
 				if (request.getReqType() != -1) {
-					//add a valid request
 					temp_Reqs.push_back(request);
+				}
+				else {
+					this->LOG("Unknown request for: ");
+					this->LOG(request.getPath());
+					this->LOG("\r\n");
 				}
 
 				currentLineIndex = 0;
@@ -117,36 +126,35 @@ vector<RequestType> Manager::processLines() {
 	if (currentLineIndex > 0) {
 		// Null-terminate the last line if not terminated with '\n'
 		currentLine[currentLineIndex] = '\0';
-		temp_Reqs.push_back(processLineAndGetRequest(currentLine));
+		temp_Reqs.emplace_back(processLineAndGetRequest(currentLine));
 	}
-	CloseHandle(hReqFile);
-	return temp_Reqs;
 
+	CloseHandle(hReqFile);
+	return TRUE;
 }
 
 RequestType Manager::processLineAndGetRequest(const char* line) {
 	int reqType = -1;
 	char path[50];
+	memset(path, 0, 50);
 
 	const char* getPtr = strstr(line, "GET:");
 	const char* postPtr = strstr(line, "POST:");
 	const char* pathPtr = strstr(line, ".com/");
 
 	if (getPtr != NULL) {
-		reqType = 1; // 1 for GET
-
-		getPtr += strlen("GET:");
+		reqType = GET_REQ; // 1 for GET
 	}
 	else if (postPtr != NULL) {
-		reqType = 2; // 2 for POST
+		reqType = POST_REQ; // 2 for POST
 	}
+
 	if (pathPtr != NULL) {
 		pathPtr += strlen(".com/");
 		size_t pathLength = strcspn(pathPtr, "\0"); // Find the length of the path
 		if (pathLength < sizeof(path) - 1) {
 			// Copy the path and null-terminate
 			memcpy(path, pathPtr, pathLength);
-			path[pathLength] = '\0';
 		}
 
 	}
@@ -181,38 +189,71 @@ BOOL Manager::startProcessing()
 
 
 	// 4. Read Line by Line from the file until all file is passed
-	this->LOG("Started parsing the request file! \r\n");
+	this->LOG("Started parsing the config file! \r\n");
 
-	vector<RequestType> requests = this->processLines();
-
-	
+	vector<RequestType> requests;
+	 this->proccessConfigFile(requests);
 
 	for (RequestType& req : requests) {
 		//send requests
 		if (strcmp(req.getPath(), "dohomework") == 0) {
-			if (req.getReqType() == 1) { //get request
-				HINTERNET hGetRequest = client.get(req.getPath());
-				if(hGetRequest == NULL) { return FALSE; }
-
-
-
-
+			if (!this->processDoHomeworkRequest(req)) {
+				this->LOG("Request for route: ");
+				this->LOG(req.getPath());
+				this->LOG(" couldn't be process. Reason: ");
+				this->LOG(this->lastError.c_str());
+				this->LOG("\r\n");
 			}
-			else if (req.getReqType() == 2) { //post request
-
-			}
-
 		}
 		else if (strcmp(req.getPath(), "dohomework_additional") == 0) {
-
-
+			if (!this->processAditionalHomework(req)) {
+				this->LOG("Request for route: ");
+				this->LOG(req.getPath());
+				this->LOG(" couldn't be process. Reason: ");
+				this->LOG(this->lastError.c_str());
+				this->LOG("\r\n");
+			}
 		}
-
-
-
 	}
-	
 
+	this->LOG("Finalized parsing the config file! \r\n");
+
+	return TRUE;
+}
+
+BOOL Manager::processDoHomeworkRequest(RequestType& req)
+{
+	switch (req.getReqType())
+	{
+	case GET_REQ: return this->processGetRequest(req);
+	case POST_REQ: return this->proccessPostRequest(req);
+	}
+
+	return FALSE;
+}
+
+
+BOOL Manager::processGetRequest(RequestType& req)
+{
+	HINTERNET hGetRequest = client.get(req.getPath());
+	if (hGetRequest == NULL) { return FALSE; }
+
+	return FALSE;
+}
+
+BOOL Manager::proccessPostRequest(RequestType& req)
+{
+
+
+	return TRUE;
+}
+
+
+
+BOOL Manager::processAditionalHomework(RequestType& req)
+{
+	HINTERNET hGetRequest = client.get(req.getPath());
+	if (hGetRequest == NULL) { return FALSE; }
 
 
 	return TRUE;

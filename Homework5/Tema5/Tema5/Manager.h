@@ -41,8 +41,11 @@ public:
 	void LOG(LPCSTR);
 	void LOG(LPSTR);
 
-	vector<RequestType> processLines();
+	BOOL proccessConfigFile(vector<RequestType>&);
 	RequestType processLineAndGetRequest(const char*);
-
+	BOOL processDoHomeworkRequest(RequestType&);
+	BOOL processAditionalHomework(RequestType&);
+	BOOL processGetRequest(RequestType&);
+	BOOL proccessPostRequest(RequestType&);
 };
 

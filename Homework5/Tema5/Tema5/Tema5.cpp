@@ -238,13 +238,13 @@ void CreateInterfaceElements(HWND hWnd)
     CreateWindow("STATIC", "Server address", WS_VISIBLE | WS_CHILD,
         10, 10, 200, 20, hWnd, (HMENU)ID_LINK_SPAN, hInst, NULL);
 
-    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
+    CreateWindow("EDIT", "cssohw.herokuapp.com", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
         10, 30, 400, 20, hWnd, (HMENU)ID_LINK, hInst, NULL);
 
     CreateWindow("STATIC", "Matricol Number", WS_VISIBLE | WS_CHILD,
         10, 60, 200, 20, hWnd, (HMENU)ID_MATRICOL_SPAN, hInst, NULL);
 
-    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
+    CreateWindow("EDIT", "310910401ESL211043", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
         10, 80, 400, 20, hWnd, (HMENU)ID_MATRICOL, hInst, NULL);
 
     CreateWindow("BUTTON", "Start requests", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,

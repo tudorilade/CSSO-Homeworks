@@ -7,6 +7,7 @@
 #define ID_LOG_WINDOW 103
 #define LINK_BUFFER_SIZE 1024
 #define M_NUMBER_BUFFER_SIZE 1024
+#define BUFFER_SIZE 1024
 
 //type of request TEO added
 
