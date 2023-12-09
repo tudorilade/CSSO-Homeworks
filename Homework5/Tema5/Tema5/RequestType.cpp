@@ -1,6 +1,8 @@
 #include "RequestType.h"
 
-RequestType::RequestType(int req_type, char* pathGiven) :req_type(req_type) {
+RequestType::RequestType(
+	int req_type, char* pathGiven, unsigned int routeType
+) : req_type(req_type), route(routeType){
 	path = _strdup(pathGiven);
 }
 
@@ -10,6 +12,11 @@ int RequestType::getReqType() {
 
 char* RequestType::getPath() {
 	return this->path;
+}
+
+unsigned int RequestType::getRoute()
+{
+	return this->route;
 }
 
 

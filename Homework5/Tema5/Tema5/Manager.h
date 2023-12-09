@@ -29,6 +29,8 @@ private:
 	DirFileHandler fileHandler;
 	Client client;
 
+	DWORD lastRequestResponse;
+
 public:
 	Manager() {};
 	Manager(LPSTR, DWORD, LPSTR, DWORD, HWND&);

@@ -13,3 +13,8 @@
 
 #define GET_REQ 1
 #define POST_REQ 2
+
+// type of routes
+
+#define DO_HOMEWORK_ROUTE 1
+#define DO_ADDITIONAL_ROUTE 2

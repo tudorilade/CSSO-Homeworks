@@ -113,6 +113,7 @@ HANDLE DirFileHandler::openFile(LPCSTR path) {
         FILE_ATTRIBUTE_NORMAL,
         NULL
     );
+
     return myConfigHandler;
 }
 

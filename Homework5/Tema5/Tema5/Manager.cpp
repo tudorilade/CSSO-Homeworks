@@ -86,7 +86,6 @@ BOOL Manager::proccessConfigFile(vector<RequestType>& requestsVector) {
 		return FALSE; 
 	}
 
-	vector<RequestType> temp_Reqs;
 	//go line by line
 	DWORD dwBytesRead;
 	char buffer[BUFFER_SIZE];
@@ -103,11 +102,9 @@ BOOL Manager::proccessConfigFile(vector<RequestType>& requestsVector) {
 
 				RequestType request = this->processLineAndGetRequest(currentLine);
 
-				this->LOG(request.getPath());
-				this->LOG("\r\n");
 
 				if (request.getReqType() != -1) {
-					temp_Reqs.push_back(request);
+					requestsVector.emplace_back(request);
 				}
 				else {
 					this->LOG("Unknown request for: ");
@@ -126,7 +123,7 @@ BOOL Manager::proccessConfigFile(vector<RequestType>& requestsVector) {
 	if (currentLineIndex > 0) {
 		// Null-terminate the last line if not terminated with '\n'
 		currentLine[currentLineIndex] = '\0';
-		temp_Reqs.emplace_back(processLineAndGetRequest(currentLine));
+		requestsVector.emplace_back(processLineAndGetRequest(currentLine));
 	}
 
 	CloseHandle(hReqFile);
@@ -149,6 +146,8 @@ RequestType Manager::processLineAndGetRequest(const char* line) {
 		reqType = POST_REQ; // 2 for POST
 	}
 
+	unsigned int routeType = DO_HOMEWORK_ROUTE;
+
 	if (pathPtr != NULL) {
 		pathPtr += strlen(".com/");
 		size_t pathLength = strcspn(pathPtr, "\0"); // Find the length of the path
@@ -157,9 +156,13 @@ RequestType Manager::processLineAndGetRequest(const char* line) {
 			memcpy(path, pathPtr, pathLength);
 		}
 
+		if (strstr(line, "dohomework_additional") != NULL)
+		{
+			routeType = DO_ADDITIONAL_ROUTE;
+		}
 	}
 
-	return RequestType(reqType, path);
+	return RequestType(reqType, path, routeType);
 }
 BOOL Manager::startProcessing()
 {
@@ -196,7 +199,7 @@ BOOL Manager::startProcessing()
 
 	for (RequestType& req : requests) {
 		//send requests
-		if (strcmp(req.getPath(), "dohomework") == 0) {
+		if (req.getRoute() == DO_HOMEWORK_ROUTE) {
 			if (!this->processDoHomeworkRequest(req)) {
 				this->LOG("Request for route: ");
 				this->LOG(req.getPath());
@@ -205,7 +208,7 @@ BOOL Manager::startProcessing()
 				this->LOG("\r\n");
 			}
 		}
-		else if (strcmp(req.getPath(), "dohomework_additional") == 0) {
+		else if (req.getRoute() == DO_ADDITIONAL_ROUTE) {
 			if (!this->processAditionalHomework(req)) {
 				this->LOG("Request for route: ");
 				this->LOG(req.getPath());
@@ -238,7 +241,32 @@ BOOL Manager::processGetRequest(RequestType& req)
 	HINTERNET hGetRequest = client.get(req.getPath());
 	if (hGetRequest == NULL) { return FALSE; }
 
-	return FALSE;
+	DWORD bytesRead = 0;
+	DWORD number;
+	// Read data into the buffer
+	char buffer[sizeof(DWORD)];
+	memset(buffer, 0, sizeof(DWORD));
+
+	if (!InternetReadFile(hGetRequest, buffer, sizeof(DWORD), &bytesRead))
+	{
+		this->lastError = "Can't retrieve the request. Error code: " + std::to_string(GetLastError());
+		return FALSE;
+	}
+
+	if (bytesRead == 0)
+	{
+		this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
+		return FALSE;
+	}
+
+	memcpy(&number, buffer, sizeof(DWORD));
+	this->lastRequestResponse = number;
+	this->LOG("Read from current request ");
+	this->LOG(req.getPath());
+	this->LOG(" response ");
+	this->LOG(buffer);
+	this->LOG("\r\n");
+	return TRUE;
 }
 
 BOOL Manager::proccessPostRequest(RequestType& req)
