@@ -278,6 +278,115 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 {
 	HINTERNET hGetRequest = client.get(req.getPath());
 	if (hGetRequest == NULL) { return FALSE; }
+	
+
+	HANDLE hFile;
+	//construct file Name
+
+	const char* routeValue = req.getValueFromRoute();
+	size_t fileNameSize = strlen(fileHandler.getPath(DOWNLOADS_DIR)) + strlen(routeValue) + strlen("_additional.txt") + 2; // +1 for null-terminator
+	char* fileName = new char[fileNameSize];
+	strcpy_s(fileName, fileNameSize, fileHandler.getPath(DOWNLOADS_DIR));
+	strcat_s(fileName, fileNameSize, "\\");
+	strcat_s(fileName, fileNameSize, routeValue);
+	strcat_s(fileName, fileNameSize, "_additional.txt");
+	HANDLE hTempFile = fileHandler.openFile(fileName);
+	int checkExistance = fileHandler.fileExistsOrInvalid(hTempFile);
+	CloseHandle(hTempFile);
+	if (checkExistance == 1) //file exists
+	{
+		hFile = fileHandler.openFile(fileName);
+		if (hFile == INVALID_HANDLE_VALUE) {
+
+
+			return FALSE;
+		}
+	}
+	else if(checkExistance == 0){ //does not exist
+		hFile = fileHandler.createFile(fileName);
+		if (hFile == INVALID_HANDLE_VALUE) {
+			return FALSE;
+		}
+	} else
+	{
+		return FALSE;
+	}
+	DWORD bytesRead = 0;
+	// Read data into the buffer
+	char buffer[sizeof(DWORD)];
+	memset(buffer, 0, sizeof(DWORD));
+	if (!InternetReadFile(hGetRequest, buffer, sizeof(DWORD), &bytesRead))
+	{
+		this->lastError = "Can't retrieve the request. Error code: " + std::to_string(GetLastError());
+		return FALSE;
+	}
+
+	if (bytesRead == 0)
+	{
+		this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
+		return FALSE;
+	}
+
+	this->LOG("Am trimis request de la ");
+	this->LOG(req.getPath());
+	this->LOG("si am primit ");
+	this->lastRequestResponse = (char*)calloc(bytesRead + 1, sizeof(char)); // +1 for null-terminator
+
+	strncpy_s(this->lastRequestResponse, bytesRead + 1, buffer, bytesRead);
+	this->LOG(lastRequestResponse);
+	this->LOG("\r\n");
+
+	char bufferDUMPED[50];
+	strcpy_s(bufferDUMPED, 50, this->lastRequestResponse);
+	strcat_s(bufferDUMPED, 50, "\n");
+	if (!fileHandler.appendToFile(hFile, bufferDUMPED, strlen(bufferDUMPED))) {
+		return FALSE;
+	}
+	while (strcmp(buffer, "0") != 0) {
+		size_t sizeOfNewPath = strlen("dohomework_additional/") + strlen(buffer) + 1; // +1 for null-terminator
+		char* newPath = new char[sizeOfNewPath];
+		strcpy_s(newPath, sizeOfNewPath, "dohomework_additional/");
+		strcat_s(newPath, sizeOfNewPath, buffer);
+		this->LOG("Fac alt request cu path-ul: ");
+		this->LOG(newPath);
+		this->LOG("\r\n");
+		hGetRequest = client.get(newPath);
+		bytesRead = 0;
+		//empty the buffer
+		memset(buffer, 0, sizeof(DWORD));
+		if (!InternetReadFile(hGetRequest, buffer, sizeof(DWORD), &bytesRead))
+		{
+			this->lastError = "Can't retrieve the request. Error code: " + std::to_string(GetLastError());
+			return FALSE;
+		}
+
+		if (bytesRead == 0)
+		{
+			this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
+			return FALSE;
+		}
+		this->lastRequestResponse = (char*)calloc(bytesRead + 1, sizeof(char)); // +1 for null-terminator
+
+		// Use strncpy_s safely
+		strncpy_s(this->lastRequestResponse, bytesRead + 1, buffer, bytesRead);
+		this->LOG("Am primit : ");
+		this->LOG(this->lastRequestResponse);
+		this->LOG("\r\n");
+		
+		char* dumpBuffer = new char[strlen(buffer) + strlen("\n") + 1];
+		strcpy_s(dumpBuffer, strlen(buffer) + strlen("\n") + 1, buffer);
+		strcat_s(dumpBuffer, strlen(buffer) + strlen("\n") + 1, "\n");
+
+		if (!fileHandler.appendToFile(hFile, dumpBuffer, strlen(dumpBuffer))) {
+			return FALSE;
+		}
+		
+		free(dumpBuffer);
+		free(newPath);
+	}
+
+	CloseHandle(hFile);
+	InternetCloseHandle(hGetRequest);
 
 
 	return TRUE;

@@ -113,15 +113,13 @@ HANDLE DirFileHandler::openFile(LPCSTR path) {
         FILE_ATTRIBUTE_NORMAL,
         NULL
     );
-
     return myConfigHandler;
 }
 
 /**
 * @brief Method responsible for creating the file if it does not exist, or truncates an existing one.
 *
-* @return a handle to the file
-*/
+* @return a handle to the file*/
 HANDLE DirFileHandler::createFile(LPCSTR path)
 {
     HANDLE myConfigHandler = CreateFile(
