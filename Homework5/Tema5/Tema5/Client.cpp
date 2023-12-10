@@ -1,9 +1,10 @@
 #include "Client.h"
 
 
-Client::Client()
+Client::Client(HWND& logger)
 {
 	this->openInternetConnection();
+	this->logger = logger;
 }
 
 
@@ -82,6 +83,8 @@ LPCSTR Client::formatResource(LPCSTR resource, DWORD protocol)
 */
 HINTERNET Client::get(LPSTR route, DWORD& getRequests)
 {
+	this->LOG("GET: ");
+	this->LOG(route, TRUE);
 	HINTERNET hRequest = HttpOpenRequest(session, "GET", route, NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
 	if (!hRequest) { return NULL; }
 	if (!HttpSendRequest(hRequest, NULL, 0, NULL, 0)) { return NULL; }
@@ -92,6 +95,10 @@ HINTERNET Client::get(LPSTR route, DWORD& getRequests)
 
 HINTERNET Client::post(LPSTR route, const string& postData, DWORD& postRequests)
 {
+	this->LOG("POST: ");
+	this->LOG(route);
+	this->LOG("?");
+	this->LOG(postData.c_str(), TRUE);
 	LPCSTR headers = "Content-Type: application/x-www-form-urlencoded";
 	HINTERNET hRequest = HttpOpenRequest(session, "POST", route, NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
 	if (!hRequest) { return NULL; }
@@ -109,25 +116,54 @@ HINTERNET Client::post(LPSTR route, const string& postData, DWORD& postRequests)
 */
 HINTERNET Client::get(LPSTR route)
 {
+	this->LOG("GET: ");
+	this->LOG(route, TRUE);
 	HINTERNET hRequest = HttpOpenRequest(session, "GET", route, NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
 	if (!hRequest) { return NULL; }
 	if (!HttpSendRequest(hRequest, NULL, 0, NULL, 0)) { return NULL; }
 	return hRequest;
 }
 
-
+/**
+* Method responsible for sending a POST request
+*/
 HINTERNET Client::post(LPSTR route, const string& postData)
 {
+	this->LOG("POST: ");
+	this->LOG(route);
+	this->LOG("?");
+	this->LOG(postData.c_str(), TRUE);
 	LPCSTR headers = "Content-Type: application/x-www-form-urlencoded";
 	HINTERNET hRequest = HttpOpenRequest(session, "POST", route, NULL, NULL, NULL, INTERNET_FLAG_SECURE, 0);
 	if (!hRequest) { return NULL; }
 	if (!HttpSendRequest(hRequest, headers, -1, const_cast<char*>(postData.c_str()), postData.length())) {
 		InternetCloseHandle(hRequest);
 		return NULL;
-	}
+	}	
 	return hRequest;
 }
 
+/**
+* Method responsible for checking the status code of a request
+*/
+BOOL Client::isStatusCodeValid(HINTERNET& hReq) {
+	DWORD httpStatusCode = 0;
+	DWORD statusCodeSize = sizeof(httpStatusCode);
+
+	if (!HttpQueryInfo(hReq, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER,
+		&httpStatusCode, &statusCodeSize, NULL)) {
+		this->LOG("Error while checking the status code: ");
+		this->LOG(to_string(GetLastError()).c_str(), TRUE);
+		return FALSE;
+	}
+	this->LOG("Status code: ");
+	this->LOG(to_string(httpStatusCode).c_str(), TRUE);
+	if (!(httpStatusCode >= 200 && httpStatusCode < 300)) {
+		InternetCloseHandle(hReq);
+		return FALSE;
+	}
+	return TRUE;
+}
 
 LPSTR Client::constructUrlPath(LPSTR server, LPSTR route)
 {
@@ -150,5 +186,39 @@ void Client::closeHandles() {
 	{
 		InternetCloseHandle(internetOpenHandle);
 		internetOpenHandle = NULL;
+	}
+}
+
+void Client::LOG(LPCSTR buffer)
+{
+	int length = GetWindowTextLength(logger);
+	SendMessage(logger, EM_SETSEL, (WPARAM)length, (LPARAM)length);
+	SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)buffer);
+}
+
+void Client::LOG(LPSTR buffer)
+{
+	int length = GetWindowTextLength(logger);
+	SendMessage(logger, EM_SETSEL, (WPARAM)length, (LPARAM)length);
+	SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)buffer);
+}
+
+void Client::LOG(LPCSTR buffer, BOOL addNewLine)
+{
+	int length = GetWindowTextLength(logger);
+	SendMessage(logger, EM_SETSEL, (WPARAM)length, (LPARAM)length);
+	SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)buffer);
+	if (addNewLine) {
+		SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)"\r\n");
+	}
+}
+
+void Client::LOG(LPSTR buffer, BOOL addNewLine)
+{
+	int length = GetWindowTextLength(logger);
+	SendMessage(logger, EM_SETSEL, (WPARAM)length, (LPARAM)length);
+	SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)buffer);
+	if (addNewLine) {
+		SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)"\r\n");
 	}
 }

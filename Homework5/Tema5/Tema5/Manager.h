@@ -45,12 +45,12 @@ public:
 	void LOG(LPCSTR, BOOL);
 	void LOG(LPSTR, BOOL);
 
+	BOOL sendStats();
 	BOOL proccessConfigFile(vector<RequestType>&);
 	RequestType processLineAndGetRequest(const char*);
 	BOOL processDoHomeworkRequest(RequestType&);
 	BOOL processAditionalHomework(RequestType&);
 	BOOL processGetRequest(RequestType&);
 	BOOL proccessPostRequest(RequestType&);
-	BOOL sendStats();
 };
 

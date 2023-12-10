@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include "winnett.h"
+#include <functional>
 
 using namespace std;
 
@@ -14,18 +15,24 @@ using namespace std;
 class Client
 {
 private:
-
 	LPCSTR doHomeworkRoute = "dohomework/";
 	LPCSTR doAdditionalHomeworkRoute = "dohomework_additional/";
 	LPCSTR endHomeworkRoute = "endhomework";
-	
+
 	LPCSTR userAgent = "Tudor - Teodor";
 	HINTERNET internetOpenHandle;
 	HINTERNET session;
 	string lastError;
-public:
+	HWND logger;
+	
+	void LOG(LPCSTR);
+	void LOG(LPSTR);
+	void LOG(LPCSTR, BOOL);
+	void LOG(LPSTR, BOOL);
 
-	Client();
+public:
+	Client() {};
+	Client(HWND&);
 	void openInternetConnection();
 	void startSession(LPCSTR, DWORD);
 	void closeHandles();
@@ -38,6 +45,7 @@ public:
 	HINTERNET post(LPSTR, const string&, DWORD&);
 	HINTERNET get(LPSTR);
 	HINTERNET post(LPSTR, const string&);
+	BOOL isStatusCodeValid(HINTERNET&);
 
 	LPCSTR getLastError();
 	LPCSTR formatResource(LPCSTR, DWORD);

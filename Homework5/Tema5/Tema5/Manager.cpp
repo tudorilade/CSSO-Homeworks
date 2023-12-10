@@ -47,7 +47,7 @@ DWORD Manager::execute()
 		return FALSE;
 	}
 
-	this->client = Client();
+	this->client = Client(this->logger);
 
 	if (!client.isHandleValid(client.getHandle(INTERNET)))
 	{
@@ -163,6 +163,11 @@ RequestType Manager::processLineAndGetRequest(const char* line) {
 
 	return RequestType(reqType, path, routeType);
 }
+
+/**
+* Main method responsible for establishing the connection with the server, processing the config file and 
+* sending the results to endhomework/
+*/
 BOOL Manager::startProcessing()
 {
 	// 1. instantiate client
@@ -190,10 +195,13 @@ BOOL Manager::startProcessing()
 
 
 	// 4. Read Line by Line from the file until all file is passed
-	this->LOG("Started parsing the config file! \r\n");
+	this->LOG("Start parsing the config file! \r\n");
 
 	vector<RequestType> requests;
-	 this->proccessConfigFile(requests);
+	if (!this->proccessConfigFile(requests))
+	{
+		return FALSE;
+	}
 
 	for (RequestType& req : requests) {
 		//send requests
@@ -216,26 +224,28 @@ BOOL Manager::startProcessing()
 		}
 	}
 	// 5. Send the last post
-	if (!this->sendStats()) {
-		this->LOG("Post request for the last stats could not be proccessed!\r\n");
-	}
-	
-
-
-
-
 	this->LOG("\r\n", TRUE);
-	this->LOG("Finalized parsing the config file! \r\n");
+
 
 	DWORD totalReq = numberOfGetRequests + numberOfPostRequests;
 	this->LOG("Total of requests: ");
 	this->LOG(to_string(totalReq).c_str(), TRUE);
 
+	if (!this->sendStats()) {
+		this->LOG("Post request for the last stats could not be proccessed!\r\n");
+	}
+
+	this->LOG("\r\n", TRUE);
+	this->LOG("Finalized parsing the config file! \r\n");
+
 	return TRUE;
 }
 
+/**
+* Method responsible for sending the last request to endhomework route
+*/
 BOOL Manager::sendStats() {
-	this->LOG("\r\n");
+	
 	const char* path = fileHandler.getPath(DOWNLOADS_DIR);
 	size_t len = strlen(path);
 	char* newPath = new char[len + 3];
@@ -246,15 +256,30 @@ BOOL Manager::sendStats() {
 		return FALSE;
 	}
 	DWORD totalReq = numberOfGetRequests + numberOfPostRequests;
-	string postData = "id=" + string(this->nrMatricol) + "&total=" + to_string(totalReq) + "&get=" + to_string(numberOfGetRequests) + "&post=" + to_string(numberOfPostRequests) + "&size=" + string(totalSize);
+	string postData = "id=" +
+		string(this->nrMatricol) +
+		"&total=" +
+		to_string(totalReq) +
+		"&get=" +
+		to_string(numberOfGetRequests) +
+		"&post=" +
+		to_string(numberOfPostRequests) +
+		"&size=" + string(totalSize);
 
 	char* reqPath = new char[strlen("endhomework")+1];
 	strcpy_s(reqPath, strlen("endhomework") + 1, "endhomework");
-	HINTERNET hPostRequest = client.post(reqPath, postData, numberOfPostRequests);
+	HINTERNET hPostRequest = client.post(reqPath, postData);
 	if (hPostRequest == NULL) {
-		this->lastError = "Failed to post request. Error code: " + std::to_string(GetLastError());
+		this->lastError = "Failed to post request. Error code: " + to_string(GetLastError());
 		return FALSE;
 	}
+
+	if (!client.isStatusCodeValid(hPostRequest))
+	{
+		this->lastError = "Failed to post request. Error code: " + to_string(GetLastError());
+		return FALSE;
+	}
+
 	return TRUE;
 }
 
@@ -272,12 +297,16 @@ BOOL Manager::processDoHomeworkRequest(RequestType& req)
 
 BOOL Manager::processGetRequest(RequestType& req)
 {
-	this->LOG("GET: Sending request to ");
-	this->LOG(req.getPath(), TRUE);
-	
 	HINTERNET hGetRequest = client.get(req.getPath(), numberOfGetRequests);
 	if (hGetRequest == NULL) {
 		this->lastError = "Failed to get request. Error code: " + to_string(GetLastError());
+		return FALSE;
+	}
+
+	if (!client.isStatusCodeValid(hGetRequest))
+	{
+		InternetCloseHandle(hGetRequest);
+		this->lastError = "Failed to post request. Error code: " + to_string(GetLastError());
 		return FALSE;
 	}
 
@@ -364,28 +393,35 @@ BOOL Manager::processGetRequest(RequestType& req)
 BOOL Manager::proccessPostRequest(RequestType& req)
 {
 	string postData = "id=" + string(nrMatricol) + "&value=" + lastRequestResponse; // Replace with actual data
-	this->LOG("POST: Sending request to route: ");
-	this->LOG(req.getPath());
-	this->LOG("?");
-	this->LOG(postData.c_str(), TRUE);
 	HINTERNET hPostRequest = client.post(req.getPath(), postData, numberOfPostRequests);
 	if (hPostRequest == NULL) {
 		this->lastError = "Failed to post request. Error code: " + std::to_string(GetLastError());
 		return FALSE;
 	}
+
+	if (!client.isStatusCodeValid(hPostRequest))
+	{
+		this->lastError = "Failed to post request. Error code: " + to_string(GetLastError());
+		return FALSE;
+	}
+
 	return TRUE;
 }
 
 BOOL Manager::processAditionalHomework(RequestType& req)
 {
-	this->LOG("GET: Sending request to ");
-	this->LOG(req.getPath(), TRUE);
-
+	
 	HINTERNET hGetRequest = client.get(req.getPath(), numberOfGetRequests);
 	if (hGetRequest == NULL) { return FALSE; }
-	HANDLE hFile;
-	//construct file Name
 
+	if (!client.isStatusCodeValid(hGetRequest))
+	{
+		this->lastError = "Failed to post request. Error code: " + to_string(GetLastError());
+		return FALSE;
+	}
+
+	// Preparing to write to file
+	HANDLE hFile;
 	const char* routeValue = req.getValueFromRoute();
 	size_t fileNameSize = strlen(fileHandler.getPath(DOWNLOADS_DIR)) + strlen(routeValue) + strlen("_additional.txt") + 2; // +1 for null-terminator
 	char* fileName = new char[fileNameSize];
@@ -400,16 +436,22 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 	{
 		hFile = fileHandler.openFile(fileName);
 		if (hFile == INVALID_HANDLE_VALUE) {
+			InternetCloseHandle(hGetRequest);
+			this->lastError = "Failed to open the file. Error code: " + to_string(GetLastError());
 			return FALSE;
 		}
 	}
 	else if(checkExistance == 0){ //does not exist
 		hFile = fileHandler.createFile(fileName);
 		if (hFile == INVALID_HANDLE_VALUE) {
+			InternetCloseHandle(hGetRequest);
+			this->lastError = "Failed to create the file. Error code: " + to_string(GetLastError());
 			return FALSE;
 		}
 	} else
 	{
+		this->lastError = "Failed to create / open the file. Error code: " + to_string(GetLastError());
+		InternetCloseHandle(hGetRequest);
 		return FALSE;
 	}
 	DWORD bytesRead = 0;
@@ -418,13 +460,15 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 	memset(buffer, 0, sizeof(DWORD));
 	if (!InternetReadFile(hGetRequest, buffer, sizeof(DWORD), &bytesRead))
 	{
-		this->lastError = "Can't retrieve the request. Error code: " + std::to_string(GetLastError());
+		this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
+		InternetCloseHandle(hGetRequest);
 		return FALSE;
 	}
 
 	if (bytesRead == 0)
 	{
 		this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
+		InternetCloseHandle(hGetRequest);
 		return FALSE;
 	}
 	this->lastRequestResponse = (char*)calloc(bytesRead + 1, sizeof(char)); // +1 for null-terminator
@@ -434,6 +478,8 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 	strcpy_s(bufferDUMPED, 50, this->lastRequestResponse);
 	strcat_s(bufferDUMPED, 50, "\n");
 	if (!fileHandler.appendToFile(hFile, bufferDUMPED, strlen(bufferDUMPED))) {
+		InternetCloseHandle(hGetRequest);
+		CloseHandle(hFile);
 		return FALSE;
 	}
 
@@ -446,22 +492,30 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 		strcpy_s(newPath, sizeOfNewPath, "dohomework_additional/");
 		strcat_s(newPath, sizeOfNewPath, buffer);
 
-		this->LOG("GET: Sending request to ");
-		this->LOG(newPath, TRUE);
-
-		hGetRequest = client.get(newPath);
-		numberOfGetRequests++;
+		hGetRequest = client.get(newPath, numberOfGetRequests);
+		
+		if (!client.isStatusCodeValid(hGetRequest))
+		{
+			InternetCloseHandle(hGetRequest);
+			CloseHandle(hFile);
+			this->lastError = "Failed to get request. Error code: " + to_string(GetLastError());
+			return FALSE;
+		}
 		bytesRead = 0;
 		//empty the buffer
 		memset(buffer, 0, sizeof(DWORD));
 		if (!InternetReadFile(hGetRequest, buffer, sizeof(DWORD), &bytesRead))
 		{
+			InternetCloseHandle(hGetRequest);
+			CloseHandle(hFile);
 			this->lastError = "Can't retrieve the request. Error code: " + std::to_string(GetLastError());
 			return FALSE;
 		}
 
 		if (bytesRead == 0)
 		{
+			InternetCloseHandle(hGetRequest);
+			CloseHandle(hFile);
 			this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
 			return FALSE;
 		}
@@ -476,6 +530,8 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 		strcat_s(dumpBuffer, strlen(buffer) + strlen("\n") + 1, "\n");
 
 		if (!fileHandler.appendToFile(hFile, dumpBuffer, strlen(dumpBuffer))) {
+			InternetCloseHandle(hGetRequest);
+			CloseHandle(hFile);
 			return FALSE;
 		}
 		free(dumpBuffer);
@@ -493,9 +549,18 @@ BOOL Manager::downloadConfigFile()
 {
 	this->LOG("Trying to access resource from route ");
 	this->LOG(this->relativePath, TRUE);
+	this->LOG("", TRUE);
 
 	HINTERNET hRequest = client.get(this->relativePath);
 
+	if (!client.isStatusCodeValid(hRequest))
+	{
+		InternetCloseHandle(hRequest);
+		this->lastError = "Failed to get request. Error code: " + to_string(GetLastError());
+		return FALSE;
+	}
+
+	this->LOG("", TRUE);
 	this->LOG("Request successful !", TRUE);
 	
 	if (hRequest == NULL) { return FALSE; }
@@ -508,12 +573,17 @@ BOOL Manager::downloadConfigFile()
 	if (configHandle == INVALID_HANDLE_VALUE) { return FALSE; }
 
 	while (InternetReadFile(hRequest, buffer, sizeof(buffer), &bytesRead) && bytesRead != 0) {
-		if (!fileHandler.writeToFile(configHandle, buffer, bytesRead)) { return FALSE; };
+		if (!fileHandler.writeToFile(configHandle, buffer, bytesRead)) { 
+			this->lastError = "Failed to write response. Error code: " + to_string(GetLastError());
+			CloseHandle(configHandle);
+			InternetCloseHandle(hRequest);
+			return FALSE; 
+		};
 	}
 
 	CloseHandle(configHandle);
-	this->LOG("Content successfully written to myconfig.txt", TRUE);
 	InternetCloseHandle(hRequest);
+	this->LOG("Content successfully written to myconfig.txt", TRUE);
 	return TRUE;
 }
 

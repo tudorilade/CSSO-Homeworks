@@ -61,8 +61,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     return (int) msg.wParam;
 }
 
-
-
 //
 //  FUNCTION: MyRegisterClass()
 //
@@ -146,6 +144,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+                break;
+            case ID_CLEAR_LOG:
+                hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW);
+                SetWindowText(hLogWindow, "");
                 break;
             case ID_EXEC_BUTTON:
                 linkBuffer = (LPSTR)calloc(LINK_BUFFER_SIZE, sizeof(LPSTR));
@@ -249,6 +251,9 @@ void CreateInterfaceElements(HWND hWnd)
 
     CreateWindow("BUTTON", "Start requests", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
         10, 120, 200, 30, hWnd, (HMENU)ID_EXEC_BUTTON, hInst, NULL);
+
+    CreateWindow("BUTTON", "Clear Log Console", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        10, 400, 200, 30, hWnd, (HMENU)ID_CLEAR_LOG, hInst, NULL);
 
     CreateWindow("STATIC", "Requests Logs", WS_VISIBLE | WS_CHILD,
         420, 10, 700, 20, hWnd, (HMENU)ID_MATRICOL_SPAN, hInst, NULL);
