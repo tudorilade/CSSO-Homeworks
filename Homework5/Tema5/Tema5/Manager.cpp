@@ -210,11 +210,19 @@ BOOL Manager::startProcessing()
 			if (!this->processAditionalHomework(req)) {
 				this->LOG("Request for route: ");
 				this->LOG(req.getPath());
-				this->LOG(" couldn't be process. Reason: ");
+				this->LOG(" couldn't be proccessed. Reason: ");
 				this->LOG(this->lastError.c_str(), TRUE);
 			}
 		}
 	}
+	// 5. Send the last post
+	if (!this->sendStats()) {
+		this->LOG("Post request for the last stats could not be proccessed!\r\n");
+	}
+	
+
+
+
 
 	this->LOG("\r\n", TRUE);
 	this->LOG("Finalized parsing the config file! \r\n");
@@ -223,6 +231,30 @@ BOOL Manager::startProcessing()
 	this->LOG("Total of requests: ");
 	this->LOG(to_string(totalReq).c_str(), TRUE);
 
+	return TRUE;
+}
+
+BOOL Manager::sendStats() {
+	this->LOG("\r\n");
+	const char* path = fileHandler.getPath(DOWNLOADS_DIR);
+	size_t len = strlen(path);
+	char* newPath = new char[len + 3];
+	strcpy_s(newPath, len + 1, path);
+	strcat_s(newPath, len + 3, "\\*");
+	LPCSTR totalSize = fileHandler.GetTotalSize(newPath);
+	if (strlen(totalSize) == 0) {
+		return FALSE;
+	}
+	DWORD totalReq = numberOfGetRequests + numberOfPostRequests;
+	string postData = "id=" + string(this->nrMatricol) + "&total=" + to_string(totalReq) + "&get=" + to_string(numberOfGetRequests) + "&post=" + to_string(numberOfPostRequests) + "&size=" + string(totalSize);
+
+	char* reqPath = new char[strlen("endhomework")+1];
+	strcpy_s(reqPath, strlen("endhomework") + 1, "endhomework");
+	HINTERNET hPostRequest = client.post(reqPath, postData, numberOfPostRequests);
+	if (hPostRequest == NULL) {
+		this->lastError = "Failed to post request. Error code: " + std::to_string(GetLastError());
+		return FALSE;
+	}
 	return TRUE;
 }
 
@@ -395,7 +427,6 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 		this->lastError = "Can't retrieve the request. Error code: " + to_string(GetLastError());
 		return FALSE;
 	}
-
 	this->lastRequestResponse = (char*)calloc(bytesRead + 1, sizeof(char)); // +1 for null-terminator
 	strncpy_s(this->lastRequestResponse, bytesRead + 1, buffer, bytesRead);
 
@@ -447,13 +478,13 @@ BOOL Manager::processAditionalHomework(RequestType& req)
 		if (!fileHandler.appendToFile(hFile, dumpBuffer, strlen(dumpBuffer))) {
 			return FALSE;
 		}
-		
 		free(dumpBuffer);
 		free(newPath);
 	}
 
 	CloseHandle(hFile);
 	InternetCloseHandle(hGetRequest);
+	
 	return TRUE;
 }
 

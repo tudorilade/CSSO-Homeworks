@@ -37,5 +37,6 @@ public:
 	BOOL writeToFile(HANDLE, LPCSTR, DWORD);
 	BOOL appendToFile(HANDLE, LPCSTR, DWORD);
 	DWORD fileExistsOrInvalid(HANDLE);
+	LPCSTR GetTotalSize(LPCSTR);
 };
 

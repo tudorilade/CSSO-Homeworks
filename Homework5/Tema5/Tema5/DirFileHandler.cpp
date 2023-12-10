@@ -186,3 +186,42 @@ BOOL DirFileHandler::appendToFile(HANDLE handle, LPCSTR buffer, DWORD bufferSize
     if (bufferSize != bytesWritten) { return FALSE; }
     return TRUE;
 }
+
+/**
+* Method responsible for getting the total size of a directory
+*/
+LPCSTR DirFileHandler::GetTotalSize(LPCSTR dirPath) {
+    WIN32_FIND_DATAA fileInfo;
+    HANDLE firstFile = FindFirstFileA(dirPath, &fileInfo);
+    int totalSize = 0;
+
+    if (firstFile == INVALID_HANDLE_VALUE) {
+        return "";
+    }
+    else {
+        do {
+            if (strcmp(fileInfo.cFileName, ".") != 0 && strcmp(fileInfo.cFileName, "..") != 0) {
+                if (!(fileInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+                    // get the size of the current file and add it to the totalSize
+                    totalSize += fileInfo.nFileSizeLow;
+                }
+            }
+        } while (FindNextFileA(firstFile, &fileInfo) != 0);
+
+        if (GetLastError() != ERROR_NO_MORE_FILES) {
+            // Error occurred during FindNextFile
+            return "";
+        }
+
+        if (!FindClose(firstFile)) {
+            // Error occurred during FindClose
+            return "";
+        }
+    }
+
+    // Convert totalSize to LPCSTR
+    static char totalSizeStr[20];  // Assuming a reasonable size for the totalSize
+    _snprintf_s(totalSizeStr, sizeof(totalSizeStr), _TRUNCATE, "%d", totalSize);
+
+    return totalSizeStr;
+}

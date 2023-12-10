@@ -51,5 +51,6 @@ public:
 	BOOL processAditionalHomework(RequestType&);
 	BOOL processGetRequest(RequestType&);
 	BOOL proccessPostRequest(RequestType&);
+	BOOL sendStats();
 };
 
