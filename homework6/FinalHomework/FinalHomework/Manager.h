@@ -8,19 +8,18 @@ using namespace std;
 
 class Manager
 {
-private:
+protected:
 	HWND mainWindow;
 	HWND logger;
-	DWORD childWindowType;
 	DirFileHandler fileHandler;
-
 public:
 	Manager() {};
-	Manager(HWND, DWORD);
-	
+	Manager(HWND);
+
+	virtual void execute() = 0;
 	HWND getLogger();
 
-	void execute();
+	DWORD setupFileHandler();
 	void static LOG(HWND, LPCSTR, BOOL);
 	void static LOG(HWND, LPSTR, BOOL);
 };

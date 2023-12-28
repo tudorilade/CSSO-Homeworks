@@ -1,0 +1,46 @@
+#include "ComputePerformancesManager.h"
+
+
+void ComputePerformancesManager::execute()
+{
+	if (!this->setupFileHandler())
+		return;
+		
+
+	this->processCommands();
+	this->displayInformations();
+}
+
+/**
+* Method responsible for invoking the commands
+*/
+void ComputePerformancesManager::processCommands()
+{
+	for (Command* command : commands)
+	{
+		command->execute(this->performancesResults);
+	}
+}
+
+/**
+* Method responsible for displaying the informantions after 
+* the commands are executed to the corresponding window
+*/
+void ComputePerformancesManager::displayInformations()
+{
+	// geting SID window
+	HWND sidWindow = GetDlgItem(mainWindow, ID_SID_DISPLAY);
+	SetWindowText(sidWindow, this->performancesResults.sidInfo.c_str());
+
+	// geting HT window
+	HWND HTWindow = GetDlgItem(mainWindow, ID_HT_DISPLAY);
+	SetWindowText(HTWindow, this->performancesResults.HTApi.c_str());
+
+	// geting NUMA window
+	HWND numaWindow = GetDlgItem(mainWindow, ID_NUMA_DISPLAY);
+	SetWindowText(numaWindow, this->performancesResults.NUMPAApi.c_str());
+
+	// geting CPU window
+	HWND cpuWindow = GetDlgItem(mainWindow, ID_CPU_DISPLAY);
+	SetWindowText(cpuWindow, this->performancesResults.CPUApi.c_str());
+}

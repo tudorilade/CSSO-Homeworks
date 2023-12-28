@@ -128,8 +128,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Command.h" />
+    <ClInclude Include="ComputePerfomancesCommands.h" />
+    <ClInclude Include="ComputePerformancesManager.h" />
     <ClInclude Include="constants.h" />
     <ClInclude Include="DirFileHandler.h" />
+    <ClInclude Include="EvaluatePerfomancesCommands.h" />
+    <ClInclude Include="EvaluatePerformancesManager.h" />
     <ClInclude Include="FinalHomework.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Manager.h" />
@@ -137,7 +141,12 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Command.cpp" />
+    <ClCompile Include="ComputePerfomancesCommands.cpp" />
+    <ClCompile Include="ComputePerformancesManager.cpp" />
     <ClCompile Include="DirFileHandler.cpp" />
+    <ClCompile Include="EvaluatePerfomancesCommands.cpp" />
+    <ClCompile Include="EvaluatePerformancesManager.cpp" />
     <ClCompile Include="FinalHomework.cpp" />
     <ClCompile Include="Manager.cpp" />
   </ItemGroup>

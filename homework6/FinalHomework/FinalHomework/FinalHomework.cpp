@@ -3,7 +3,8 @@
 
 #include "framework.h"
 #include "FinalHomework.h"
-#include "Manager.h"
+#include "ComputePerformancesManager.h"
+#include "EvaluatePerformancesManager.h"
 
 #define MAX_LOADSTRING 100
 
@@ -23,6 +24,7 @@ void                CreateCustomMenu(HWND);
 void                CreateMyPerformances(HWND);
 void                CreateEvaluatePerformances(HWND);
 void                ClearMainWindow(HWND);
+void                ClearPerformancesWindows(HWND mainWindow);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -123,7 +125,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    Manager manager;
+    Manager* manager;
     HWND hLogWindow;
 
     switch (message)
@@ -139,8 +141,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
 
             case ID_CLEAR_LOGS_P:
-                hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_P);
-                SetWindowText(hLogWindow, "");
+                ClearPerformancesWindows(hWnd);
                 break;
             case ID_COMPUTE_MY_PERFORMANCES:
                 ClearMainWindow(hWnd);
@@ -153,8 +154,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             
             case ID_COLLECT_BUTTON:
-                manager = Manager(hWnd, ID_COMPUTE_MY_PERFORMANCES);
-                manager.execute();
+                manager = new ComputePerformancesManager(hWnd);
+                manager->execute();
+                delete manager;
                 break;
 
             case IDM_EXIT:
@@ -233,10 +235,10 @@ void CreateMyPerformances(HWND hWnd)
         STARTING_POSITION, 160, WIDTH_DISPLAY, HEIGHT_DISPLAY, hWnd, (HMENU)ID_HT_DISPLAY, hInst, NULL);
 
     CreateWindow("STATIC", "  NUMA API", WS_VISIBLE | WS_CHILD,
-        STARTING_POSITION, 230, WIDTH_LABEL, HEIGHT_LABEL, hWnd, (HMENU)ID_API_LABEL, hInst, NULL);
+        STARTING_POSITION, 230, WIDTH_LABEL, HEIGHT_LABEL, hWnd, (HMENU)ID_NUMA_LABEL, hInst, NULL);
 
     CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_AUTOVSCROLL | ES_MULTILINE | ES_READONLY,
-        STARTING_POSITION, 250, WIDTH_DISPLAY, HEIGHT_DISPLAY, hWnd, (HMENU)ID_API_DISPLAY, hInst, NULL);
+        STARTING_POSITION, 250, WIDTH_DISPLAY, HEIGHT_DISPLAY, hWnd, (HMENU)ID_NUMA_DISPLAY, hInst, NULL);
 
     CreateWindow("STATIC", "  CPU Sets", WS_VISIBLE | WS_CHILD,
         STARTING_POSITION, 320, WIDTH_LABEL, HEIGHT_LABEL, hWnd, (HMENU)ID_CPU_LABEL, hInst, NULL);
@@ -288,4 +290,28 @@ BOOL CALLBACK DestoryChildCallback(
 */
 void ClearMainWindow(HWND hWnd) {
     EnumChildWindows(hWnd /* parent hwnd*/, DestoryChildCallback, NULL);
+}
+
+
+void ClearPerformancesWindows(HWND mainWindow)
+{
+    // clear LOGs window
+    HWND hLogWindow = GetDlgItem(mainWindow, ID_LOG_WINDOW_P);
+    SetWindowText(hLogWindow, "");
+
+    // clear SID window
+    HWND sidWindow = GetDlgItem(mainWindow, ID_SID_DISPLAY);
+    SetWindowText(sidWindow, "");
+
+    // clear HT window
+    HWND HTWindow = GetDlgItem(mainWindow, ID_HT_DISPLAY);
+    SetWindowText(HTWindow, "");
+
+    // clear NUMA window
+    HWND numaWindow = GetDlgItem(mainWindow, ID_NUMA_DISPLAY);
+    SetWindowText(numaWindow, "");
+
+    // clear CPU window
+    HWND cpuWindow = GetDlgItem(mainWindow, ID_CPU_DISPLAY);
+    SetWindowText(cpuWindow, "");
 }
