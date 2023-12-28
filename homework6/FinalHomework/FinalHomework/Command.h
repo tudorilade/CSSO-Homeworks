@@ -1,6 +1,9 @@
 #pragma once
 #include <string>
 #include <iostream>
+#include <windows.h>
+#include <sddl.h>
+
 
 using namespace std;
 
@@ -16,4 +19,5 @@ class Command
 {
 public:
 	virtual void execute(myPerfResults&) = 0;
+	virtual string getExecuteLog() = 0;
 };

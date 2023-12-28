@@ -5,8 +5,6 @@ void ComputePerformancesManager::execute()
 {
 	if (!this->setupFileHandler())
 		return;
-		
-
 	this->processCommands();
 	this->displayInformations();
 }
@@ -18,8 +16,10 @@ void ComputePerformancesManager::processCommands()
 {
 	for (Command* command : commands)
 	{
+		this->LOG(this->logger, command->getExecuteLog().c_str(), TRUE);
 		command->execute(this->performancesResults);
 	}
+	this->LOG(this->logger, "Finalized collection of information\r\n", TRUE);
 }
 
 /**
@@ -28,6 +28,7 @@ void ComputePerformancesManager::processCommands()
 */
 void ComputePerformancesManager::displayInformations()
 {
+	this->LOG(this->logger, "Displaying information\r\n", TRUE);
 	// geting SID window
 	HWND sidWindow = GetDlgItem(mainWindow, ID_SID_DISPLAY);
 	SetWindowText(sidWindow, this->performancesResults.sidInfo.c_str());

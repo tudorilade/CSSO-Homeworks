@@ -2,6 +2,10 @@
 
 #include "Command.h"
 
+#include <sstream>
+#include <bitset>
+#include <vector>
+
 
 //
 // Command to extract SID Info
@@ -11,6 +15,9 @@ class SIDInfo {
 
 public:
 	string getSIDInfo();
+	string getCurrentUserSID();
+	string getEveryoneGroupSID();
+	string getAdminGroupSID();
 };
 
 class SIDInfoCommand : public Command
@@ -19,6 +26,7 @@ private:
 	SIDInfo sidInfo = SIDInfo();
 public:
 	void execute(myPerfResults&) override;
+	string getExecuteLog() override {return "Executing SID Info...";};
 };
 
 
@@ -38,6 +46,7 @@ private:
 
 public:
 	void execute(myPerfResults&) override;
+	string getExecuteLog() override { return "Executing HT Info..."; };
 };
 
 
@@ -58,6 +67,7 @@ private:
 
 public:
 	void execute(myPerfResults&) override;
+	string getExecuteLog() override { return "Executing NUMA Info..."; };
 };
 
 
@@ -70,6 +80,8 @@ class CPUInfo {
 
 public:
 	string getCPUInfo();
+	string getProcessDefaultCpuSetIDs();
+	string getSystemCpuSetInformation();
 };
 
 
@@ -78,4 +90,5 @@ private:
 	CPUInfo cpuInfo = CPUInfo();
 public:
 	void execute(myPerfResults&) override;
+	string getExecuteLog() override { return "Executing CPU Info..."; };
 };

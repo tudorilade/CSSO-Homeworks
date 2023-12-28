@@ -25,22 +25,9 @@
 #define STARTING_POSITION 30
 #define WIDTH_LABEL 150
 #define HEIGHT_LABEL 20
-#define WIDTH_DISPLAY 300
-#define HEIGHT_DISPLAY 60
+#define WIDTH_DISPLAY 400
+#define HEIGHT_DISPLAY 100
 
 
 // ID's related to evaluate my performances
 #define ID_EVALUATE_MY_PERFORMANCES 1005
-
-/*
-Interfata grafica
-
-1. Window with "My PC performances" 
-	-> Aici vom avea display pt pct-ul 2, si atat. 
-		Deci, o clasa care va fi responsabila de prelucrarea acestor cerinte si pe care le va afisa, nu in timp real, ci executabil printr-un buton la cerere.
-
-2. Window with "Evaluate my PC"
-	-> Aici vom avea logica ce se va ocupa de procesarea si timing ul imaginilor. 
-	TBD cand ajungem aici
-*/
-
