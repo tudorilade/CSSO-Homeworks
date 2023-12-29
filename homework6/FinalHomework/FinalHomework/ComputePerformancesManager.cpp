@@ -7,6 +7,7 @@ void ComputePerformancesManager::execute()
 		return;
 	this->processCommands();
 	this->displayInformations();
+	this->writeInfoToFile();
 }
 
 /**
@@ -44,4 +45,33 @@ void ComputePerformancesManager::displayInformations()
 	// geting CPU window
 	HWND cpuWindow = GetDlgItem(mainWindow, ID_CPU_DISPLAY);
 	SetWindowText(cpuWindow, this->performancesResults.CPUApi.c_str());
+}
+
+/**
+* Method responsible for writing the results to info.txt file
+*/
+void ComputePerformancesManager::writeInfoToFile()
+{
+	LOG(logger, "\r\nStarting to write info.txt info....", TRUE);
+	
+	HANDLE hInfo = this->fileHandler.openFile(this->fileHandler.getPath(INFO_FILE));
+
+	if (hInfo == INVALID_HANDLE_VALUE)
+	{
+		LOG(logger, "Couldn't create / open ", FALSE);
+		LOG(logger, this->fileHandler.getPath(INFO_FILE), TRUE);
+		return;
+	}
+
+	string buffer = this->performancesResults.toString();
+	if (!this->fileHandler.writeToFile(hInfo, buffer.c_str(), buffer.size())) {
+		LOG(logger, "Couldn't write to", FALSE);
+		LOG(logger, this->fileHandler.getPath(INFO_FILE), TRUE);
+	}
+	else {
+		LOG(logger, "Successfully wrote info to", FALSE);
+		LOG(logger, this->fileHandler.getPath(INFO_FILE), TRUE);
+	}
+
+	CloseHandle(hInfo);
 }

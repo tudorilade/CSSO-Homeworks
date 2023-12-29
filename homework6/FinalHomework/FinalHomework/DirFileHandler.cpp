@@ -110,7 +110,7 @@ HANDLE DirFileHandler::openFile(LPCSTR path) {
         GENERIC_WRITE | GENERIC_READ,
         NULL,
         NULL,
-        OPEN_EXISTING,
+        CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL,
         NULL
     );

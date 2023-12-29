@@ -24,4 +24,5 @@ public:
 	void execute() override;
 	void processCommands();
 	void displayInformations();
+	void writeInfoToFile();
 };

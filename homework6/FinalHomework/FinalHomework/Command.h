@@ -12,6 +12,23 @@ typedef struct MyPerformances {
 	string HTApi;
 	string NUMPAApi;
 	string CPUApi;
+
+	string toString() {
+		string buffer = "SID Info: \r\n";
+		buffer += sidInfo;
+
+		buffer += "\r\nHT API Info: \r\n";
+		buffer += HTApi;
+
+		buffer += "\r\nNUMA API Info: \r\n";
+		buffer += NUMPAApi;
+
+		buffer += "\r\nCPU API Info: \r\n";
+		buffer += CPUApi;
+
+		return buffer;
+	}
+
 } myPerfResults;
 
 

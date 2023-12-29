@@ -20,7 +20,7 @@ DWORD Manager::setupFileHandler()
 		return FALSE;
 	}
 
-	this->LOG(this->getLogger(), "There you go ! Need to implement the actual computation using Command execute pattern", TRUE);
+	this->LOG(this->getLogger(), "Successfully created the initial setup", TRUE);
 	return TRUE;
 }
 

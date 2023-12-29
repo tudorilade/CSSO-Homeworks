@@ -26,7 +26,7 @@ private:
 	SIDInfo sidInfo = SIDInfo();
 public:
 	void execute(myPerfResults&) override;
-	string getExecuteLog() override {return "Executing SID Info...";};
+	string getExecuteLog() override {return "Collecting SID Info...";};
 };
 
 
@@ -46,7 +46,7 @@ private:
 
 public:
 	void execute(myPerfResults&) override;
-	string getExecuteLog() override { return "Executing HT Info..."; };
+	string getExecuteLog() override { return "Collecting HT Info..."; };
 };
 
 
@@ -67,7 +67,7 @@ private:
 
 public:
 	void execute(myPerfResults&) override;
-	string getExecuteLog() override { return "Executing NUMA Info..."; };
+	string getExecuteLog() override { return "Collecting NUMA Info..."; };
 };
 
 
@@ -90,5 +90,5 @@ private:
 	CPUInfo cpuInfo = CPUInfo();
 public:
 	void execute(myPerfResults&) override;
-	string getExecuteLog() override { return "Executing CPU Info..."; };
+	string getExecuteLog() override { return "Collecting CPU Info..."; };
 };
