@@ -14,6 +14,15 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 HMENU hMenu;
 HMENU hSubMenu;
+HBITMAP mainWindowBitMap = NULL;
+HBITMAP evaluateBitMap = NULL;
+HBITMAP evaluateGrayBitMap = NULL;
+HBITMAP evaluateReverseBitMap = NULL;
+
+BOOL showHomeBitmap = false;
+BOOL showEvaluateImage = false;
+BOOL showEvaluateGrayImage = false;
+BOOL showEvaluateReverseImage = false;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -24,7 +33,14 @@ void                CreateCustomMenu(HWND);
 void                CreateMyPerformances(HWND);
 void                CreateEvaluatePerformances(HWND);
 void                ClearMainWindow(HWND);
-void                ClearPerformancesWindows(HWND mainWindow);
+void                CreateMainWindowText(HWND);
+void                ClearPerformancesWindows(HWND);
+void                CreateEvaluatePerfomances(HWND);
+void                ClearEvaluatePerformancesWindows(HWND);
+void                DrawBitMapTo(HBITMAP, HDC, HWND, DWORD, DWORD, DWORD, DWORD);
+void                InvalidateImages();
+void                ValidateEvaluateImages();
+
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -136,10 +152,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
-            // Parse the menu selections:
             switch (wmId)
             {
-
             case ID_CLEAR_LOGS_P:
                 ClearPerformancesWindows(hWnd);
                 break;
@@ -151,8 +165,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case ID_EVALUATE_MY_PERFORMANCES:
                 ClearMainWindow(hWnd);
                 CreateEvaluatePerformances(hWnd);
+                
+                /*
+                * TODO: implement the calling EvaluateManager
+                */
+
+                ValidateEvaluateImages();
                 break;
-            
+            case ID_HOME:
+                ClearMainWindow(hWnd);
+                CreateMainWindowText(hWnd);
+                break;
+
             case ID_COLLECT_BUTTON:
                 manager = new ComputePerformancesManager(hWnd);
                 manager->execute();
@@ -168,12 +192,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: Add any drawing code that uses hdc here...
-            EndPaint(hWnd, &ps);
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+
+        if ( showHomeBitmap && mainWindowBitMap != NULL) {
+            DrawBitMapTo(mainWindowBitMap, hdc, hWnd, xHomeImage, yHomeImage, widthHomeImage, heightHomeImage);
         }
+
+        EndPaint(hWnd, &ps);
+    }
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -209,12 +237,14 @@ void CreateCustomMenu(HWND hWnd)
 
     hMenu = CreateMenu();
     hSubMenu = CreatePopupMenu();
+    AppendMenu(hSubMenu, MF_STRING, ID_HOME, "Home");
     AppendMenu(hSubMenu, MF_STRING, ID_COMPUTE_MY_PERFORMANCES, "My performances");
     AppendMenu(hSubMenu, MF_STRING, ID_EVALUATE_MY_PERFORMANCES, "Evaluate my PC");
     AppendMenu(hSubMenu, MF_SEPARATOR, 0, NULL);
     AppendMenu(hSubMenu, MF_STRING, IDM_EXIT, "Exit");
     AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, "&Menu");
     SetMenu(hWnd, hMenu);
+    CreateMainWindowText(hWnd);
 }
 
 void CreateMyPerformances(HWND hWnd) 
@@ -257,8 +287,59 @@ void CreateMyPerformances(HWND hWnd)
 
     CreateWindow("BUTTON", "Clear Logs", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
         950, 580, 200, 30, hWnd, (HMENU)ID_CLEAR_LOGS_P, hInst, NULL);
-
 }
+
+
+void CreateMainWindowText(HWND hWnd) {
+    HWND hTitle = CreateWindow("STATIC", "  Final project for CSSO  ",
+        WS_VISIBLE | WS_CHILD,
+        HOME_STARTING_POSITION, 20, 1000, 120,
+        hWnd, (HMENU)ID_MY_P_TITLE, hInst, NULL);
+
+    HFONT titleFont = CreateFont(100, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+        DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Arial");
+
+    SendMessage(hTitle, WM_SETFONT, (WPARAM)titleFont, TRUE);
+
+    RECT rect;
+    GetClientRect(hWnd, &rect);
+
+    HWND footer = CreateWindow("STATIC", "  Proiect realizat de:", WS_VISIBLE | WS_CHILD,
+        1200, rect.bottom - 200, 
+        200, 40,
+        hWnd, NULL, hInst, NULL);
+    
+    HWND footerText = CreateWindow("STATIC", "\n Tudor Ilade\n Teodor Sarghie", WS_VISIBLE | WS_CHILD,
+        1200, rect.bottom - 180,
+        220, 100,
+        hWnd, NULL, hInst, NULL);
+
+    HFONT footerFont = CreateFont(25, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+        DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Arial");
+
+    SendMessage(footer, WM_SETFONT, (WPARAM)footerFont, TRUE);
+    SendMessage(footerText, WM_SETFONT, (WPARAM)footerFont, TRUE);
+    mainWindowBitMap = (HBITMAP)LoadImage(hInst, "C:\\Users\\tudor\\CSSO-Homeworks\\city.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+    showHomeBitmap = true;
+    InvalidateRect(hWnd, NULL, TRUE);
+}
+
+
+void DrawBitMapTo(HBITMAP hBitmap, HDC hdc, HWND hWnd, DWORD xPos, DWORD yPos, DWORD width, DWORD height)
+{
+    if (hBitmap != NULL) {
+        HDC hdcMem = CreateCompatibleDC(hdc);
+        HBITMAP oldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
+        BITMAP bitmap;
+        GetObject(hBitmap, sizeof(bitmap), &bitmap);
+        StretchBlt(hdc, xPos, yPos, width, height, hdcMem, 0, 0, bitmap.bmWidth, bitmap.bmHeight, SRCCOPY);
+        SelectObject(hdcMem, oldBitmap);
+        DeleteDC(hdcMem);
+    }
+}
+
 
 void CreateEvaluatePerformances(HWND hWnd)
 {
@@ -289,7 +370,10 @@ BOOL CALLBACK DestoryChildCallback(
     function responsible for clearing up the main window
 */
 void ClearMainWindow(HWND hWnd) {
-    EnumChildWindows(hWnd /* parent hwnd*/, DestoryChildCallback, NULL);
+    EnumChildWindows(hWnd, DestoryChildCallback, NULL);
+    InvalidateImages();
+    InvalidateRect(hWnd, NULL, TRUE);
+    UpdateWindow(hWnd);
 }
 
 
@@ -314,4 +398,19 @@ void ClearPerformancesWindows(HWND mainWindow)
     // clear CPU window
     HWND cpuWindow = GetDlgItem(mainWindow, ID_CPU_DISPLAY);
     SetWindowText(cpuWindow, "");
+}
+
+void InvalidateImages()
+{
+    showHomeBitmap = false;
+    showEvaluateImage = false;
+    showEvaluateGrayImage = false;
+    showEvaluateReverseImage = false;
+}
+
+void ValidateEvaluateImages()
+{
+    showEvaluateGrayImage = true;
+    showEvaluateImage = true;
+    showEvaluateReverseImage = true;
 }

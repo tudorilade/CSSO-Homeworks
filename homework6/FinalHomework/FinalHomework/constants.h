@@ -4,6 +4,14 @@
 #define CHUNK_SIZE 4000
 #define BMP_HEADER_SIZE 54
 
+// home window
+#define ID_HOME 999
+#define HOME_STARTING_POSITION 200
+#define xHomeImage 200
+#define yHomeImage 140
+#define widthHomeImage 1000
+#define heightHomeImage 475
+
 // Constants related to the creation of windows
 
 // ID's related to my performances
