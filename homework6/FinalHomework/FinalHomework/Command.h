@@ -4,7 +4,6 @@
 #include <windows.h>
 #include <sddl.h>
 
-
 using namespace std;
 
 typedef struct MyPerformances {

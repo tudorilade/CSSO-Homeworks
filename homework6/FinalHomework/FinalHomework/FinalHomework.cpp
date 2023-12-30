@@ -14,15 +14,10 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 HMENU hMenu;
 HMENU hSubMenu;
-HBITMAP mainWindowBitMap = NULL;
-HBITMAP evaluateBitMap = NULL;
-HBITMAP evaluateGrayBitMap = NULL;
-HBITMAP evaluateReverseBitMap = NULL;
+WCHAR imgPath[MAX_PATH], greyPath[MAX_PATH], inversePath[MAX_PATH];
 
-BOOL showHomeBitmap = false;
-BOOL showEvaluateImage = false;
-BOOL showEvaluateGrayImage = false;
-BOOL showEvaluateReverseImage = false;
+evInput evaluateInput = evInput();
+ShowImages showImages = ShowImages();
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -38,8 +33,8 @@ void                ClearPerformancesWindows(HWND);
 void                CreateEvaluatePerfomances(HWND);
 void                ClearEvaluatePerformancesWindows(HWND);
 void                DrawBitMapTo(HBITMAP, HDC, HWND, DWORD, DWORD, DWORD, DWORD);
-void                InvalidateImages();
-void                ValidateEvaluateImages();
+HRESULT             SelectFolder(HWND, WCHAR*, UINT);
+HRESULT             SelectFile(HWND, WCHAR*, UINT);
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -142,8 +137,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     Manager* manager;
-    HWND hLogWindow;
-
+    HWND hLogWindow, window;
+    
     switch (message)
     {
     case WM_CREATE:
@@ -154,9 +149,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             int wmId = LOWORD(wParam);
             switch (wmId)
             {
-            case ID_CLEAR_LOGS_P:
-                ClearPerformancesWindows(hWnd);
-                break;
+            // events related to switch between windows
             case ID_COMPUTE_MY_PERFORMANCES:
                 ClearMainWindow(hWnd);
                 CreateMyPerformances(hWnd);
@@ -165,24 +158,81 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case ID_EVALUATE_MY_PERFORMANCES:
                 ClearMainWindow(hWnd);
                 CreateEvaluatePerformances(hWnd);
-                
-                /*
-                * TODO: implement the calling EvaluateManager
-                */
-
-                ValidateEvaluateImages();
+                showImages.ValidateEvaluateImages();
                 break;
             case ID_HOME:
                 ClearMainWindow(hWnd);
                 CreateMainWindowText(hWnd);
                 break;
 
+             // events related to Evaluate my PC
+            case ID_CLEAR_LOGS_E:
+                ClearEvaluatePerformancesWindows(hWnd);
+                break;
+
+            case ID_SELECT_INPUT_IMAGE:
+                window = GetDlgItem(hWnd, ID_INPUT_PATH_DISPLAY);
+                memset(imgPath, MAX_PATH, 0);
+                if (SUCCEEDED(SelectFile(hWnd, imgPath, MAX_PATH))) {
+                    evaluateInput.imagePath = wstring(imgPath);
+                    SetWindowTextW(window, imgPath);
+                    showImages.loadImage(imgPath, hWnd, hInst, EVALUATE_IMAGE);
+                }
+                else {
+                    hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_E);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Couldn't get the path for the test image", TRUE);
+                }
+                break;
+
+            case ID_SELECT_GRAY_OUTPUT:
+                window = GetDlgItem(hWnd, ID_GRAY_PATH_DISPLAY);
+                memset(greyPath, MAX_PATH, 0);
+                if (SUCCEEDED(SelectFolder(hWnd, greyPath, MAX_PATH))) {
+                    evaluateInput.greyPath = wstring(greyPath);
+                    SetWindowTextW(window, greyPath);
+                }
+                else {
+                    hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_E);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Couldn't get the dir path for the gray output", TRUE);
+                }
+                break;
+                
+            case ID_SELECT_INVERSE_OUTPUT:
+                window = GetDlgItem(hWnd, ID_INVERSE_PATH_DISPLAY);
+                memset(inversePath, MAX_PATH, 0);
+                if (SUCCEEDED(SelectFolder(hWnd, inversePath, MAX_PATH))) {
+                    evaluateInput.inversePath = wstring(inversePath);
+                    SetWindowTextW(window, inversePath);
+                }
+                else {
+                    hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_E);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Couldn't get the path for the test image", TRUE);
+                }
+                break;
+
+            case ID_RUN_TESTS_E:
+                evaluateInput.getTypeOfTest(GetDlgItem(hWnd, ID_CHOICE_BOX));
+
+                if (!EvaluatePerformancesManager::isInputValid(evaluateInput))
+                {
+                    hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_E);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Input invalid. Check that all paths have been supplied and test type selected.", TRUE);
+                    break;
+                }
+                manager = new EvaluatePerformancesManager(hWnd, evaluateInput, showImages);
+                manager->execute();
+                delete manager;
+                break;
+
+            // events related to MyPerformances
             case ID_COLLECT_BUTTON:
                 manager = new ComputePerformancesManager(hWnd);
                 manager->execute();
                 delete manager;
                 break;
-
+            case ID_CLEAR_LOGS_P:
+                ClearPerformancesWindows(hWnd);
+                break;
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;
@@ -196,8 +246,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hWnd, &ps);
 
-        if ( showHomeBitmap && mainWindowBitMap != NULL) {
-            DrawBitMapTo(mainWindowBitMap, hdc, hWnd, xHomeImage, yHomeImage, widthHomeImage, heightHomeImage);
+        if (showImages.showHomeBitmap && showImages.mainWindowBitMap != NULL) {
+            DrawBitMapTo(showImages.mainWindowBitMap, hdc, hWnd, xHomeImage, yHomeImage, widthHomeImage, heightHomeImage);
+        }
+
+        if (showImages.showEvaluateImage && showImages.evaluateBitMap != NULL) {
+            DrawBitMapTo(showImages.evaluateBitMap, hdc, hWnd, xImagePos1, yimagePos, widthImage, heightImage);
         }
 
         EndPaint(hWnd, &ps);
@@ -321,9 +375,7 @@ void CreateMainWindowText(HWND hWnd) {
 
     SendMessage(footer, WM_SETFONT, (WPARAM)footerFont, TRUE);
     SendMessage(footerText, WM_SETFONT, (WPARAM)footerFont, TRUE);
-    mainWindowBitMap = (HBITMAP)LoadImage(hInst, "C:\\Users\\tudor\\CSSO-Homeworks\\city.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-    showHomeBitmap = true;
-    InvalidateRect(hWnd, NULL, TRUE);
+    showImages.loadImage("C:\\Users\\tudor\\CSSO-Homeworks\\city.bmp", hWnd, hInst, MAIN_IMAGE);
 }
 
 
@@ -341,17 +393,105 @@ void DrawBitMapTo(HBITMAP hBitmap, HDC hdc, HWND hWnd, DWORD xPos, DWORD yPos, D
 }
 
 
-void CreateEvaluatePerformances(HWND hWnd)
-{
-    CreateWindow("EDIT EVALUATE PERFOMANCEs", "",
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
-        10, 10, 200, 20,
-        hWnd, (HMENU)1012, NULL, NULL);
+void CreateEvaluatePerformances(HWND hWnd) {
 
-    CreateWindow("BUTTON", "calculate",
-        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-        10, 40, 80, 20,
-        hWnd, (HMENU)1013, NULL, NULL);
+    RECT rect;
+    GetClientRect(hWnd, &rect);
+
+    // 474 width for a screen
+
+    int widthScreens = 474;
+
+    int endOffirstScreen = widthScreens * 1;
+    int endOfSecondScreen = widthScreens * 2;
+    int endOfThirdScreen = widthScreens * 3;
+
+    // path of input image
+    CreateWindow("BUTTON", "Select input image", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        5, yImagesPos, (int)(endOffirstScreen / 3), 30, hWnd, (HMENU)ID_SELECT_INPUT_IMAGE, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL | ES_READONLY,
+        (int)(endOffirstScreen / 3) + 5, yImagesPos, (int)(2 * endOffirstScreen / 3) - 10, 30, hWnd, (HMENU)ID_INPUT_PATH_DISPLAY, hInst, NULL);
+
+    // path of Gray image
+    int widthGray = (int)(endOffirstScreen / 3);
+    int startGray = endOffirstScreen + 10;
+    CreateWindow("BUTTON", "Select GRAY path", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        startGray, yImagesPos, widthGray, 30, hWnd, (HMENU)ID_SELECT_GRAY_OUTPUT, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL | ES_READONLY,
+        startGray + widthGray, yImagesPos, (int)(2 * widthScreens / 3) - 10, 30, hWnd, (HMENU)ID_GRAY_PATH_DISPLAY, hInst, NULL);
+
+    CreateWindow("STATIC", "Execution time:",
+        WS_CHILD | WS_VISIBLE | ES_LEFT,
+        startGray, yExecution, 100, 20,
+        hWnd, (HMENU)ID_LABEL_EXEC_TIME_GREY, hInst, NULL);
+
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL | ES_READONLY,
+        startGray + 100, yExecution, 100, 20, hWnd, (HMENU)ID_EXEC_TIME_GREY, hInst, NULL);
+
+
+    // path of Inverse image
+    
+    int widthInverse= (int)(widthScreens / 3);
+    int startInverse  = endOfSecondScreen + 10;
+
+    CreateWindow("BUTTON", "Select INVERSE path", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        startInverse, yImagesPos, widthInverse, 30, hWnd, (HMENU)ID_SELECT_INVERSE_OUTPUT, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL | ES_READONLY,
+        startInverse + widthInverse, yImagesPos, (int)(2 * widthScreens / 3) - 15, 30, hWnd, (HMENU)ID_INVERSE_PATH_DISPLAY, hInst, NULL);
+
+    CreateWindow("STATIC", "Execution time:",
+        WS_CHILD | WS_VISIBLE | ES_LEFT,
+        startInverse, yExecution, 100, 20,
+        hWnd, (HMENU)ID_LABEL_EXEC_TIME_INVERSE, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL | ES_READONLY,
+        startInverse + 100, yExecution, 100, 20, hWnd, (HMENU)ID_EXEC_TIME_INVERSE, hInst, NULL);
+
+
+    // creation of selection tests
+
+    CreateWindow("STATIC", "Select type of test",
+        WS_CHILD | WS_VISIBLE | ES_LEFT,
+        10, yComboBox, 130, 20,
+        hWnd, (HMENU)ID_CHOICE_LABEL, hInst, NULL);
+
+    HWND hComboBox = CreateWindow("COMBOBOX", "",
+        WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | CBS_SORT,
+        130, yComboBox, 180, 150,
+        hWnd, (HMENU)ID_CHOICE_BOX, hInst, NULL);
+
+    ComboBox_AddString(hComboBox, COMBO_CHOICE_1);
+    ComboBox_AddString(hComboBox, COMBO_CHOICE_2);
+    ComboBox_AddString(hComboBox, COMBO_CHOICE_3);
+
+    // creation of logs
+
+    CreateWindow("STATIC", "Logger", WS_VISIBLE | WS_CHILD,
+        5, yExecution, 100, 20, hWnd, (HMENU)ID_LOG_WINDOW_E_LABEL, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_AUTOVSCROLL | ES_MULTILINE | ES_READONLY,
+        5, yExecution + 20, widthScreens, 110, hWnd, (HMENU)ID_LOG_WINDOW_E, hInst, NULL);
+
+    CreateWindow("BUTTON", "Clear Logs", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        1200, 650, 200, 30, hWnd, (HMENU)ID_CLEAR_LOGS_E, hInst, NULL);
+
+    // run tests
+
+    CreateWindow("BUTTON", "Run tests", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        1200, yComboBox, 200, 30, hWnd, (HMENU)ID_RUN_TESTS_E, hInst, NULL);
+
+
+    CreateWindow("STATIC", "BMP Header Info",
+        WS_CHILD | WS_VISIBLE | ES_LEFT,
+        350 + 120, yComboBox, 130, 20,
+        hWnd, (HMENU)ID_BMP_HEADER_LABEL, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_AUTOVSCROLL | ES_MULTILINE | ES_READONLY,
+        480 + 120, yComboBox, 400, 60, hWnd, (HMENU)ID_BMP_HEADER, hInst, NULL);
 }
 
 BOOL CALLBACK DestoryChildCallback(
@@ -371,7 +511,8 @@ BOOL CALLBACK DestoryChildCallback(
 */
 void ClearMainWindow(HWND hWnd) {
     EnumChildWindows(hWnd, DestoryChildCallback, NULL);
-    InvalidateImages();
+    showImages.InvalidateImages();
+    evaluateInput.clear();
     InvalidateRect(hWnd, NULL, TRUE);
     UpdateWindow(hWnd);
 }
@@ -400,17 +541,91 @@ void ClearPerformancesWindows(HWND mainWindow)
     SetWindowText(cpuWindow, "");
 }
 
-void InvalidateImages()
+void ClearEvaluatePerformancesWindows(HWND mainWindow)
 {
-    showHomeBitmap = false;
-    showEvaluateImage = false;
-    showEvaluateGrayImage = false;
-    showEvaluateReverseImage = false;
+    showImages.InvalidateEvaluateImages();
+    evaluateInput.clear();
+    InvalidateRect(mainWindow, NULL, TRUE);
+    UpdateWindow(mainWindow);
+
+    HWND hImgPath = GetDlgItem(mainWindow, ID_INPUT_PATH_DISPLAY);
+    SetWindowText(hImgPath, "");
+
+    HWND hGrayPath = GetDlgItem(mainWindow, ID_GRAY_PATH_DISPLAY);
+    SetWindowText(hGrayPath, "");
+
+    HWND hInversePath = GetDlgItem(mainWindow, ID_INVERSE_PATH_DISPLAY);
+    SetWindowText(hInversePath, "");
+
+    HWND execGrey = GetDlgItem(mainWindow, ID_EXEC_TIME_GREY);
+    SetWindowText(execGrey, "");
+
+    HWND execInverse = GetDlgItem(mainWindow, ID_EXEC_TIME_INVERSE);
+    SetWindowText(execInverse, "");
+
+    HWND hLogs = GetDlgItem(mainWindow, ID_LOG_WINDOW_E);
+    SetWindowText(hLogs, "");
+
+    HWND hBmpHeader = GetDlgItem(mainWindow, ID_BMP_HEADER);
+    SetWindowText(hBmpHeader, "");
 }
 
-void ValidateEvaluateImages()
-{
-    showEvaluateGrayImage = true;
-    showEvaluateImage = true;
-    showEvaluateReverseImage = true;
+/**
+* Method responsible for selecting a folder and writing the absolute path to it to folderPath variable
+*/
+HRESULT SelectFolder(HWND hWnd, WCHAR* folderPath, UINT pathSize) {
+    IFileOpenDialog* pFileOpenDialog = NULL;
+    HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpenDialog));
+    if (SUCCEEDED(hr)) {
+        DWORD dwOptions;
+        hr = pFileOpenDialog->GetOptions(&dwOptions);
+        if (SUCCEEDED(hr)) {
+            hr = pFileOpenDialog->SetOptions(dwOptions | FOS_PICKFOLDERS);
+            if (SUCCEEDED(hr)) {
+                hr = pFileOpenDialog->Show(hWnd);
+                if (SUCCEEDED(hr)) {
+                    IShellItem* pItem = NULL;
+                    hr = pFileOpenDialog->GetResult(&pItem);
+                    if (SUCCEEDED(hr)) {
+                        PWSTR pszFilePath = NULL;
+                        hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+                        if (SUCCEEDED(hr)) {
+                            wcsncpy_s(folderPath, pathSize, pszFilePath, pathSize - 1);
+                            CoTaskMemFree(pszFilePath);
+                        }
+                        pItem->Release();
+                    }
+                }
+            }
+        }
+        pFileOpenDialog->Release();
+    }
+    return hr;
+}
+
+
+/**
+* Method responsible for selecting a file and writing the absolute path to it to folderPath variable
+*/
+HRESULT SelectFile(HWND hWnd, WCHAR* filePath, UINT pathSize) {
+    IFileOpenDialog* pFileOpenDialog = NULL;
+    HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpenDialog));
+    if (SUCCEEDED(hr)) {
+        hr = pFileOpenDialog->Show(hWnd);
+        if (SUCCEEDED(hr)) {
+            IShellItem* pItem = NULL;
+            hr = pFileOpenDialog->GetResult(&pItem);
+            if (SUCCEEDED(hr)) {
+                PWSTR pszFilePath = NULL;
+                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+                if (SUCCEEDED(hr)) {
+                    wcsncpy_s(filePath, pathSize, pszFilePath, pathSize - 1);
+                    CoTaskMemFree(pszFilePath);
+                }
+                pItem->Release();
+            }
+        }
+        pFileOpenDialog->Release();
+    }
+    return hr;
 }

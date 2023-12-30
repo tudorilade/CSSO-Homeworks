@@ -29,6 +29,11 @@ DWORD DirFileHandler::setUpDirAndFiles()
         return FALSE;
     }
 
+    if (!recursiveCreateDirectory(IMAGE_LAB_PATH))
+    {
+        return FALSE;
+    }
+
     // All directories and files were successfully created ! when a file fails to be created, 
     // execution stops and prints the error
     return 1;

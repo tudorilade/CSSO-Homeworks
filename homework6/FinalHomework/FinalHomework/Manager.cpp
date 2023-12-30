@@ -3,7 +3,6 @@
 
 Manager::Manager(HWND pWnd)
 {
-	this->logger = GetDlgItem(pWnd, ID_LOG_WINDOW_P);
 	this->fileHandler = DirFileHandler();
 	this->mainWindow = pWnd;
 }

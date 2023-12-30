@@ -1,5 +1,9 @@
 #include "ComputePerformancesManager.h"
 
+ComputePerformancesManager::ComputePerformancesManager(HWND hWnd) : Manager(hWnd)
+{
+	this->logger = GetDlgItem(hWnd, ID_LOG_WINDOW_P);
+}
 
 void ComputePerformancesManager::execute()
 {

@@ -20,7 +20,7 @@ private:
 
 public:
 	ComputePerformancesManager() : Manager() {};
-	ComputePerformancesManager(HWND hWnd) : Manager(hWnd) {};
+	ComputePerformancesManager(HWND);
 	void execute() override;
 	void processCommands();
 	void displayInformations();

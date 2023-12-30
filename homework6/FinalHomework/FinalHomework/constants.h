@@ -38,4 +38,48 @@
 
 
 // ID's related to evaluate my performances
-#define ID_EVALUATE_MY_PERFORMANCES 1005
+#define ID_EVALUATE_MY_PERFORMANCES 200
+#define ID_EVALUATE_MY_PERF_TITLE 2000
+
+#define ID_SELECT_INPUT_IMAGE 2001
+#define ID_INPUT_PATH_DISPLAY 20010
+
+#define ID_SELECT_GRAY_OUTPUT 2002
+#define ID_GRAY_PATH_DISPLAY 20020
+
+#define ID_SELECT_INVERSE_OUTPUT 2003
+#define ID_INVERSE_PATH_DISPLAY 20030
+
+#define ID_CHOICE_LABEL 2004
+#define ID_CHOICE_BOX 2005
+#define ID_LABEL_EXEC_TIME_GREY 2006
+#define ID_EXEC_TIME_GREY 2007
+#define ID_LABEL_EXEC_TIME_INVERSE 2008
+#define ID_EXEC_TIME_INVERSE 2009
+#define ID_LOG_WINDOW_E 2001000
+#define ID_LOG_WINDOW_E_LABEL 200110
+#define ID_CLEAR_LOGS_E 5555
+#define ID_RUN_TESTS_E 20013
+#define ID_BMP_HEADER_LABEL 2014
+#define ID_BMP_HEADER 2015
+
+#define COMBO_CHOICE_1 "static"
+#define COMBO_CHOICE_2 "dynamic"
+#define COMBO_CHOICE_3 "sequential"
+#define COMBO_CHOICE_1_INT 111
+#define COMBO_CHOICE_2_INT 112
+#define COMBO_CHOICE_3_INT 113
+
+#define yImagesPos 80
+#define yExecution 550
+#define yComboBox 10
+
+
+
+#define xImagePos1 5
+#define xImagePos2 484
+#define xImagePos3 958
+#define yimagePos 110
+#define widthImage 464
+#define widthImage3 459
+#define heightImage 440
