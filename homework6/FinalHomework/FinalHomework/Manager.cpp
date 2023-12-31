@@ -48,3 +48,23 @@ void Manager::LOG(HWND logger,LPCSTR buffer, BOOL addNewLine)
 		SendMessage(logger, EM_REPLACESEL, FALSE, (LPARAM)"\r\n");
 	}
 }
+
+void Manager::LOG(HWND logger, LPWSTR buffer, BOOL addNewLine)
+{
+	int length = GetWindowTextLength(logger);
+	SendMessageW(logger, EM_SETSEL, (WPARAM)length, (LPARAM)length);
+	SendMessageW(logger, EM_REPLACESEL, FALSE, (LPARAM)buffer);
+	if (addNewLine) {
+		SendMessageW(logger, EM_REPLACESEL, FALSE, (LPARAM)"\r\n");
+	}
+}
+
+void Manager::LOG(HWND logger, LPCWSTR buffer, BOOL addNewLine)
+{
+	int length = GetWindowTextLength(logger);
+	SendMessageW(logger, EM_SETSEL, (WPARAM)length, (LPARAM)length);
+	SendMessageW(logger, EM_REPLACESEL, FALSE, (LPARAM)buffer);
+	if (addNewLine) {
+		SendMessageW(logger, EM_REPLACESEL, FALSE, (LPARAM)"\r\n");
+	}
+}

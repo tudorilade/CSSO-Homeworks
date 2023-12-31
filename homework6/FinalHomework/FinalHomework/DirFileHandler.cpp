@@ -1,7 +1,7 @@
 #include "DirFileHandler.h"
 
 
-LPCSTR DirFileHandler::getPath(DWORD typeOfDir) {
+LPCWSTR DirFileHandler::getPath(DWORD typeOfDir) {
     switch (typeOfDir) {
         case WEEK_LAB_DIR: return this->WEEK_LAB_PATH;
         case IMAGE_DIR: return this->IMAGE_LAB_PATH;
@@ -12,7 +12,7 @@ LPCSTR DirFileHandler::getPath(DWORD typeOfDir) {
         case COMPARISON_FILE: return this->COMP_FILE_PATH;
         case GRAPHS_FILE: return this->GRAPHS_FILE_PATH;
     }
-    return "";
+    return L"";
 }
 
 
@@ -45,12 +45,12 @@ DWORD DirFileHandler::setUpDirAndFiles()
 *
 * @return a string representing the error
 */
-string DirFileHandler::getLastError(){
+wstring DirFileHandler::getLastError(){
     if (!lastError.empty()) {
-        string tmp = move(lastError);
+        wstring tmp = move(lastError);
         return tmp;
     }
-    return ""; 
+    return L""; 
 }
 
 /**
@@ -61,14 +61,14 @@ string DirFileHandler::getLastError(){
  * @param lastError The error code from the directory creation attempt.
  * @return FALSE if the error is ERROR_ALREADY_EXISTS, TRUE otherwise.
  */
-BOOL DirFileHandler::creationOfFileAndDirs(LPCSTR path, DWORD lastError) {
+BOOL DirFileHandler::creationOfFileAndDirs(LPCWSTR path, DWORD lastError) {
 
     if (lastError == ERROR_ALREADY_EXISTS) {
         return TRUE;
     }
     else {
         // Compose the error message
-        this->lastError = "Error when trying to create: " + string(path) + " Error code: " + to_string(lastError);
+        this->lastError = L"Error when trying to create: " + wstring(path) + L" Error code: " + to_wstring(lastError);
         return FALSE;
     }
 }
@@ -81,22 +81,22 @@ BOOL DirFileHandler::creationOfFileAndDirs(LPCSTR path, DWORD lastError) {
 * @param directoryPath: the current path of the directory
 * @return TRUE if the directory hierarchy was successfully created, FALSE otherwise
 */
-BOOL DirFileHandler::recursiveCreateDirectory(LPCSTR directoryPath) {
+BOOL DirFileHandler::recursiveCreateDirectory(LPCWSTR directoryPath) {
     DWORD lastError;
-    if (CreateDirectory(directoryPath, NULL) || (lastError = GetLastError()) == ERROR_ALREADY_EXISTS) {
+    if (CreateDirectoryW(directoryPath, NULL) || (lastError = GetLastError()) == ERROR_ALREADY_EXISTS) {
         // If we managed to create a directory or it already exists, we exit
         return TRUE;
     }
 
     if (lastError == ERROR_PATH_NOT_FOUND) {
         // If path is not found, we try to create it recursevly
-        char parentDir[MAX_PATH];
+        WCHAR parentDir[MAX_PATH];
 
         // get the parentDirectory of directoryPath
         // (e.g. parrent of C:\\Facultate\\CSSO\\Laboratoare\\Week4 is C:\\Facultate\\CSSO\\Laboratoare)
-        strncpy_s(parentDir, directoryPath, strrchr(directoryPath, '\\') - directoryPath);
+        wcsncpy_s(parentDir, directoryPath, wcsrchr(directoryPath, '\\') - directoryPath);
         if (recursiveCreateDirectory(parentDir)) {
-            if (CreateDirectory(directoryPath, NULL)) {
+            if (CreateDirectoryW(directoryPath, NULL)) {
                 return TRUE;
             }
         }
@@ -109,8 +109,8 @@ BOOL DirFileHandler::recursiveCreateDirectory(LPCSTR directoryPath) {
 *
 * @return a handle to the file
 */
-HANDLE DirFileHandler::openFile(LPCSTR path) {
-    HANDLE myConfigHandler = CreateFile(
+HANDLE DirFileHandler::openFile(LPCWSTR path) {
+    HANDLE myConfigHandler = CreateFileW(
         path,
         GENERIC_WRITE | GENERIC_READ,
         NULL,
@@ -126,9 +126,9 @@ HANDLE DirFileHandler::openFile(LPCSTR path) {
 * @brief Method responsible for creating the file if it does not exist, or truncates an existing one.
 *
 * @return a handle to the file*/
-HANDLE DirFileHandler::createFile(LPCSTR path)
+HANDLE DirFileHandler::createFile(LPCWSTR path)
 {
-    HANDLE myConfigHandler = CreateFile(
+    HANDLE myConfigHandler = CreateFileW(
         path,
         GENERIC_WRITE | GENERIC_READ,
         NULL,

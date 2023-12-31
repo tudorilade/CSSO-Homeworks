@@ -26,28 +26,28 @@ class DirFileHandler
 {
 private:
 	// directories 
-	string lastError;
-	LPCSTR WEEK_LAB_PATH = "C:\\Facultate\\CSSO\\Week6";
-	LPCSTR IMAGE_LAB_PATH = "C:\\Facultate\\CSSO\\Week6\\date";
-	LPCSTR SEQUENTIAL_LAB_PATH = "C:\\Facultate\\CSSO\\Week6\\secvential";
-	LPCSTR STATIC_LAB_PATH = "C:\\Facultate\\CSSO\\Week6\\static";
-	LPCSTR DINAMIC_LAB_PATH = "C:\\Facultate\\CSSO\\Week6\\dinamic";
+	wstring lastError;
+	LPCWSTR WEEK_LAB_PATH = L"C:\\Facultate\\CSSO\\Week6";
+	LPCWSTR IMAGE_LAB_PATH = L"C:\\Facultate\\CSSO\\Week6\\date";
+	LPCWSTR SEQUENTIAL_LAB_PATH = L"C:\\Facultate\\CSSO\\Week6\\secvential";
+	LPCWSTR STATIC_LAB_PATH = L"C:\\Facultate\\CSSO\\Week6\\static";
+	LPCWSTR DINAMIC_LAB_PATH = L"C:\\Facultate\\CSSO\\Week6\\dinamic";
 	
 	// files
-	LPCSTR INFO_FILE_PATH = "C:\\Facultate\\CSSO\\Week6\\info.txt";
-	LPCSTR COMP_FILE_PATH = "C:\\Facultate\\CSSO\\Week6\\comp.txt";
-	LPCSTR GRAPHS_FILE_PATH = "C:\\Facultate\\CSSO\\Week6\\grafice.xlsx";
+	LPCWSTR INFO_FILE_PATH = L"C:\\Facultate\\CSSO\\Week6\\info.txt";
+	LPCWSTR COMP_FILE_PATH = L"C:\\Facultate\\CSSO\\Week6\\comp.txt";
+	LPCWSTR GRAPHS_FILE_PATH = L"C:\\Facultate\\CSSO\\Week6\\grafice.xlsx";
 
 	HANDLE myConfig;
 
 public:
 	DWORD setUpDirAndFiles();
-	LPCSTR getPath(DWORD);
-	string getLastError();
-	BOOL recursiveCreateDirectory(LPCSTR);
-	BOOL creationOfFileAndDirs(LPCSTR, DWORD);
-	HANDLE createFile(LPCSTR);
-	HANDLE openFile(LPCSTR);
+	LPCWSTR getPath(DWORD);
+	wstring getLastError();
+	BOOL recursiveCreateDirectory(LPCWSTR);
+	BOOL creationOfFileAndDirs(LPCWSTR, DWORD);
+	HANDLE createFile(LPCWSTR);
+	HANDLE openFile(LPCWSTR);
 	BOOL writeToFile(HANDLE, LPCSTR, DWORD);
 	BOOL appendToFile(HANDLE, LPCSTR, DWORD);
 	DWORD fileExistsOrInvalid(HANDLE);

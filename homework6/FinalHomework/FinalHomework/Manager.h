@@ -23,5 +23,7 @@ public:
 	DWORD setupFileHandler();
 	void static LOG(HWND, LPCSTR, BOOL);
 	void static LOG(HWND, LPSTR, BOOL);
+	void static LOG(HWND, LPCWSTR, BOOL);
+	void static LOG(HWND, LPWSTR, BOOL);
 };
 

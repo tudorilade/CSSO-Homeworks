@@ -31,9 +31,16 @@ typedef struct MyPerformances {
 } myPerfResults;
 
 
+typedef struct EvaluatePerformancesR {
+	wstring grayScaleTiming;
+	wstring inverseScaleTiming;
+} evPerfResults;
+
+
 class Command
 {
 public:
 	virtual void execute(myPerfResults&) = 0;
+	virtual void execute(evPerfResults&) = 0;
 	virtual string getExecuteLog() = 0;
 };
