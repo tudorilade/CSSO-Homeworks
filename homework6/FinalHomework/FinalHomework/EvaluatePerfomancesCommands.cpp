@@ -85,6 +85,86 @@ void CommandRequiredInfo::loadImage(std::vector<Pixel>& pixels) {
 	CloseHandle(hFile);
 }
 
+SECURITY_ATTRIBUTES* CommandRequiredInfo::setupSecurityDescriptor()
+{
+	SECURITY_ATTRIBUTES* sa = new SECURITY_ATTRIBUTES;
+	if (!sa) {
+		return NULL;
+	}
+
+	SECURITY_DESCRIPTOR* sd = new SECURITY_DESCRIPTOR;
+	if (!sd) {
+		delete sa;
+		return NULL;
+	}
+
+	HANDLE hToken = NULL;
+	if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
+		delete sd;
+		delete sa;
+		return NULL;
+	}
+
+	DWORD dwBufferSize = 0;
+	GetTokenInformation(hToken, TokenUser, NULL, 0, &dwBufferSize);
+	PTOKEN_USER pTokenUser = (PTOKEN_USER)malloc(dwBufferSize);
+	if (!pTokenUser) {
+		CloseHandle(hToken);
+		delete sd;
+		delete sa;
+		return NULL; // Memory allocation failed
+	}
+
+	if (!GetTokenInformation(hToken, TokenUser, pTokenUser, dwBufferSize, &dwBufferSize)) {
+		CloseHandle(hToken);
+		free(pTokenUser);
+		delete sd;
+		delete sa;
+		return NULL;
+	}
+
+	// Set up the explicit DACL
+	EXPLICIT_ACCESS ea;
+	ZeroMemory(&ea, sizeof(EXPLICIT_ACCESS));
+	ea.grfAccessPermissions = GENERIC_READ;
+	ea.grfAccessMode = SET_ACCESS;
+	ea.grfInheritance = NO_INHERITANCE;
+	ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+	ea.Trustee.TrusteeType = TRUSTEE_IS_USER;
+	ea.Trustee.ptstrName = (LPTSTR)pTokenUser->User.Sid;
+
+	PACL pACL = NULL;
+	if (SetEntriesInAcl(1, &ea, NULL, &pACL) != ERROR_SUCCESS) {
+		if (pACL) LocalFree(pACL);
+		CloseHandle(hToken);
+		free(pTokenUser);
+		delete sd;
+		delete sa;
+		return NULL;
+	}
+
+	if (!InitializeSecurityDescriptor(sd, SECURITY_DESCRIPTOR_REVISION) ||
+		!SetSecurityDescriptorDacl(sd, TRUE, pACL, FALSE)) {
+		if (pACL) LocalFree(pACL);
+		CloseHandle(hToken);
+		free(pTokenUser);
+		delete sd;
+		delete sa;
+		return NULL;
+	}
+
+	sa->nLength = sizeof(SECURITY_ATTRIBUTES);
+	sa->lpSecurityDescriptor = sd;
+	sa->bInheritHandle = FALSE;
+
+	// Clean up
+	CloseHandle(hToken);
+	free(pTokenUser);
+	if (pACL) LocalFree(pACL);
+
+	return sa;
+}
+
 /**
 * Method responsible for creating a new image given the name of image and the pixels as input
 */
@@ -92,7 +172,12 @@ BOOL CommandRequiredInfo::writeImage(wstring imgName, vector<Pixel>& pixels) {
 	
 	DWORD totalSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + pixels.size() * sizeof(Pixel);
 
-	HANDLE hFile = CreateFileW(imgName.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	SECURITY_ATTRIBUTES* sa = this->setupSecurityDescriptor();
+	if (sa == NULL)
+		return FALSE;
+
+
+	HANDLE hFile = CreateFileW(imgName.c_str(), GENERIC_WRITE | GENERIC_READ, 0, sa, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
 		return FALSE;
 	}
@@ -182,18 +267,23 @@ void InverseScaleCommand::execute(Pixel& originalPixels, vector<Pixel>& resultPi
 }
 
 
-Sequential::Sequential(cmdInfo cInfo)
+Base::Base(cmdInfo cInfo)
 {
 	this->cInfo = cInfo;
 }
 
-void Sequential::loadImage()
+void Base::loadImage()
 {
 	this->cInfo.loadImage(this->imagePixels);
 }
 
+BOOL Base::failedToLoadImage()
+{
+	return this->imagePixels.size() == 0;
+}
 
-BOOL Sequential::writeGreyImage(vector<Pixel>& resultGrey, wstring time, evPerfResults& res)
+
+BOOL Base::writeGreyImage(vector<Pixel>& resultGrey, wstring time, evPerfResults& res)
 {
 	wstring greyImageName = this->cInfo.greyDirPath + L"\\" + this->cInfo.imageName + L"_grey_" + time + L".bmp";
 	res.greyPath = greyImageName;
@@ -203,7 +293,7 @@ BOOL Sequential::writeGreyImage(vector<Pixel>& resultGrey, wstring time, evPerfR
 	return TRUE;
 }
 
-BOOL Sequential::writeInverseImage(vector<Pixel>& resultInverse, wstring time, evPerfResults& res)
+BOOL Base::writeInverseImage(vector<Pixel>& resultInverse, wstring time, evPerfResults& res)
 {
 	wstring inverse = this->cInfo.inverseDirPath + L"\\" + this->cInfo.imageName + L"_inverse_" + time + L".bmp";
 	res.inversePath = inverse;
@@ -213,10 +303,13 @@ BOOL Sequential::writeInverseImage(vector<Pixel>& resultInverse, wstring time, e
 	return TRUE;
 }
 
-BOOL Sequential::failedToLoadImage()
-{
-	return this->imagePixels.size() == 0;
-}
+
+//
+// Implementation of Sequential and Sequential command
+//
+
+Sequential::Sequential(cmdInfo cmd) : Base(cmd) {};
+
 
 void Sequential::executeGrey(vector<Pixel>& resultGrey)
 {
@@ -271,6 +364,71 @@ void SequentialCommand::execute(evPerfResults& evRes)
 	evRes.inverseScaleTiming = to_wstring((int)sequentialTime.count()) + L"ms";
 
 	if (!this->sequential.writeInverseImage(resultInverse, evRes.inverseScaleTiming, evRes))
+		evRes.lastError = L"Couldn't create the grey image. Error code: " + to_wstring(GetLastError());
+	resultInverse.clear();
+}
+
+
+//
+// Implementation of Dynamic and Dynamic command
+//
+
+Dynamic::Dynamic(cmdInfo cmd) : Base(cmd) {};
+
+
+void Dynamic::executeGrey(vector<Pixel>& resultGrey, vector<Pixel>& imageChunk)
+{
+	for (Pixel& orgPixel : imageChunk)
+	{
+		this->greyScaleCommand.execute(orgPixel, resultGrey);
+	}
+}
+
+void Dynamic::executeInverse(vector<Pixel>& resultInverse, vector<Pixel>& imageChunk)
+{
+	for (Pixel& orgPixel : imageChunk)
+	{
+		this->inverseCommand.execute(orgPixel, resultInverse);
+	}
+}
+
+DynamicCommand::DynamicCommand(cmdInfo cmd) : Command()
+{
+	this->dynamic = Dynamic(cmd);
+}
+
+void DynamicCommand::execute(evPerfResults& evRes)
+{
+	vector<Pixel> resultGrey, resultInverse;
+
+	this->dynamic.loadImage();
+
+	if (this->dynamic.failedToLoadImage())
+	{
+		evRes.lastError = L"Couldn't load the image for processing. Error code: " + to_wstring(GetLastError());
+		return;
+	}
+
+	// Executing grey operation
+	auto start = std::chrono::high_resolution_clock::now();
+	this->dynamic.executeGrey(resultGrey);
+	auto end = std::chrono::high_resolution_clock::now();
+
+	std::chrono::duration<double, std::micro> sequentialTime = end - start;
+	evRes.grayScaleTiming = to_wstring((int)sequentialTime.count()) + L"ms";
+	if (!this->dynamic.writeGreyImage(resultGrey, evRes.grayScaleTiming, evRes))
+		evRes.lastError = L"Couldn't create the grey image. Error code: " + to_wstring(GetLastError());
+
+	resultGrey.clear();
+
+	// Executing inverse operation
+	start = std::chrono::high_resolution_clock::now();
+	this->dynamic.executeInverse(resultInverse);
+	end = std::chrono::high_resolution_clock::now();
+	sequentialTime = end - start;
+	evRes.inverseScaleTiming = to_wstring((int)sequentialTime.count()) + L"ms";
+
+	if (!this->dynamic.writeInverseImage(resultInverse, evRes.inverseScaleTiming, evRes))
 		evRes.lastError = L"Couldn't create the grey image. Error code: " + to_wstring(GetLastError());
 	resultInverse.clear();
 }

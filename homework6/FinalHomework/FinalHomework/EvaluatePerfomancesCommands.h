@@ -4,6 +4,8 @@
 #include "DirFileHandler.h"
 #include <vector>
 #include <chrono>
+#include <Aclapi.h>
+
 
 typedef struct BitmapHeadersInfo {
 	BITMAPFILEHEADER bfHeader;
@@ -36,6 +38,7 @@ typedef struct CommandRequiredInfo
 
 	void loadImage(vector<Pixel>&);
 	BOOL writeImage(wstring, vector<Pixel>&);
+	SECURITY_ATTRIBUTES* setupSecurityDescriptor();
 
 } cmdInfo;
 
@@ -72,35 +75,41 @@ public:
 };
 
 
-//
-// Command for sequential
-//
+class Base {
 
-class Sequential {
-private:
+protected:
 	cmdInfo cInfo;
 	InverseScaleCommand inverseCommand = InverseScaleCommand();
 	GreyScaleCommand greyScaleCommand = GreyScaleCommand();
 	vector<Pixel> imagePixels;
 
 public:
-	Sequential() {};
-	Sequential(cmdInfo);
-
-
+	Base() {  };
+	Base(cmdInfo);
 	void loadImage();
-	void executeInverse(vector<Pixel>&);
-	void executeGrey(vector<Pixel>&);
-	
 	BOOL failedToLoadImage();
 	BOOL writeGreyImage(vector<Pixel>&, wstring, evPerfResults&);
 	BOOL writeInverseImage(vector<Pixel>&, wstring, evPerfResults&);
 };
 
+
+//
+// Command for sequential
+//
+
+class Sequential : public Base {
+public:
+	Sequential() {};
+	Sequential(cmdInfo);
+
+	void executeInverse(vector<Pixel>&);
+	void executeGrey(vector<Pixel>&);
+};
+
 class SequentialCommand : public Command {
 	Sequential sequential;
-
 public:
+
 	SequentialCommand() : Command() {};
 	SequentialCommand(cmdInfo);
 	void execute(myPerfResults&) override {};
@@ -114,21 +123,24 @@ public:
 // Command for dynamic 
 //
 
-class Dynamic {
-private:
-	string imagePath;
-	DirFileHandler fHandler;
-
+class Dynamic : public Base {
 public:
 	Dynamic() {};
-	Dynamic(string, DirFileHandler);
+	Dynamic(cmdInfo);
+
+	void executeInverse(vector<Pixel>&, vector<Pixel>&);
+	void executeGrey(vector<Pixel>&, vector<Pixel>&);
 };
 
 class DynamicCommand : public Command {
-	Dynamic dynamic = Dynamic();
+	Dynamic dynamic;
 public:
+
+	DynamicCommand() : Command() {};
+	DynamicCommand(cmdInfo);
 	void execute(myPerfResults&) override {};
 	void execute(evPerfResults&) override;
+	string getExecuteLog() { return "Executing dynamic command..."; };
 };
 
 //
