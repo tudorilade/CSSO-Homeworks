@@ -68,6 +68,31 @@ typedef struct ShowImages {
         InvalidateRect(hWnd, NULL, TRUE);
     }
 
+    void loadImage(const WCHAR* path, HWND hWnd, HINSTANCE hInst, DWORD typeImage)
+    {
+        switch (typeImage)
+        {
+        case MAIN_IMAGE:
+            mainWindowBitMap = (HBITMAP)LoadImageW(hInst, path, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+            showHomeBitmap = true;
+            break;
+        case EVALUATE_IMAGE:
+            evaluateBitMap = (HBITMAP)LoadImageW(hInst, path, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+            showEvaluateImage = true;
+            break;
+        case GRAY_IMAGE:
+            evaluateGrayBitMap = (HBITMAP)LoadImageW(hInst, path, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+            showEvaluateGrayImage = true;
+            break;
+
+        case INVERSE_IMAGE:
+            evaluateReverseBitMap = (HBITMAP)LoadImageW(hInst, path, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+            showEvaluateReverseImage = true;
+            break;
+        }
+        InvalidateRect(hWnd, NULL, TRUE);
+    }
+
     void loadImage(const char* path, HWND hWnd, HINSTANCE hInst, DWORD typeImage)
     {
         switch (typeImage)

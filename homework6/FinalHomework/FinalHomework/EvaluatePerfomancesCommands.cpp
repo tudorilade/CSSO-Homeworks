@@ -193,18 +193,20 @@ void Sequential::loadImage()
 }
 
 
-BOOL Sequential::writeGreyImage(vector<Pixel>& resultGrey, wstring time)
+BOOL Sequential::writeGreyImage(vector<Pixel>& resultGrey, wstring time, evPerfResults& res)
 {
 	wstring greyImageName = this->cInfo.greyDirPath + L"\\" + this->cInfo.imageName + L"_grey_" + time + L".bmp";
+	res.greyPath = greyImageName;
 	if (!this->cInfo.writeImage(greyImageName, resultGrey))
 		return FALSE;
 	
 	return TRUE;
 }
 
-BOOL Sequential::writeInverseImage(vector<Pixel>& resultInverse, wstring time)
+BOOL Sequential::writeInverseImage(vector<Pixel>& resultInverse, wstring time, evPerfResults& res)
 {
 	wstring inverse = this->cInfo.inverseDirPath + L"\\" + this->cInfo.imageName + L"_inverse_" + time + L".bmp";
+	res.inversePath = inverse;
 	if (!this->cInfo.writeImage(inverse, resultInverse))
 		return FALSE;
 
@@ -240,26 +242,35 @@ SequentialCommand::SequentialCommand(cmdInfo cmd) : Command()
 void SequentialCommand::execute(evPerfResults& evRes)
 {
 	vector<Pixel> resultGrey, resultInverse;
+	
 	this->sequential.loadImage();
-	if (this->sequential.failedToLoadImage())
-		return;
 
+	if (this->sequential.failedToLoadImage())
+	{
+		evRes.lastError = L"Couldn't load the image for processing. Error code: " + to_wstring(GetLastError());
+		return;
+	}
+
+	// Executing grey operation
 	auto start = std::chrono::high_resolution_clock::now();
 	this->sequential.executeGrey(resultGrey);
 	auto end = std::chrono::high_resolution_clock::now();
 
 	std::chrono::duration<double, std::micro> sequentialTime = end - start;
-	evRes.grayScaleTiming = to_wstring(sequentialTime.count()) + L" ms";
-	this->sequential.writeGreyImage(resultGrey, evRes.grayScaleTiming);
+	evRes.grayScaleTiming = to_wstring((int)sequentialTime.count()) + L"ms";
+	if (!this->sequential.writeGreyImage(resultGrey, evRes.grayScaleTiming, evRes))
+		evRes.lastError = L"Couldn't create the grey image. Error code: " + to_wstring(GetLastError());
+
 	resultGrey.clear();
 
-
+	// Executing inverse operation
 	start = std::chrono::high_resolution_clock::now();
 	this->sequential.executeInverse(resultInverse);
 	end = std::chrono::high_resolution_clock::now();
 	sequentialTime = end - start;
-	evRes.inverseScaleTiming = to_wstring(sequentialTime.count()) + L" ms";
+	evRes.inverseScaleTiming = to_wstring((int)sequentialTime.count()) + L"ms";
 
-	this->sequential.writeInverseImage(resultInverse, evRes.inverseScaleTiming);
+	if (!this->sequential.writeInverseImage(resultInverse, evRes.inverseScaleTiming, evRes))
+		evRes.lastError = L"Couldn't create the grey image. Error code: " + to_wstring(GetLastError());
 	resultInverse.clear();
 }

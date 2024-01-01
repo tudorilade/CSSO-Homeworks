@@ -219,7 +219,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     EvaluatePerformancesManager::LOG(hLogWindow, "Input invalid. Check that all paths have been supplied and test type selected.", TRUE);
                     break;
                 }
-                manager = new EvaluatePerformancesManager(hWnd, evaluateInput, showImages);
+                manager = new EvaluatePerformancesManager(hWnd, hInst, evaluateInput, showImages);
                 manager->execute();
                 delete manager;
                 break;
@@ -252,6 +252,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         if (showImages.showEvaluateImage && showImages.evaluateBitMap != NULL) {
             DrawBitMapTo(showImages.evaluateBitMap, hdc, hWnd, xImagePos1, yimagePos, widthImage, heightImage);
+        }
+
+        if (showImages.showEvaluateGrayImage && showImages.evaluateGrayBitMap != NULL) {
+            DrawBitMapTo(showImages.evaluateGrayBitMap, hdc, hWnd, xImagePos2, yimagePos, widthImage, heightImage);
+        }
+
+        if (showImages.showEvaluateReverseImage && showImages.evaluateReverseBitMap != NULL) {
+            DrawBitMapTo(showImages.evaluateReverseBitMap, hdc, hWnd, xImagePos3, yimagePos, widthImage3, heightImage);
         }
 
         EndPaint(hWnd, &ps);

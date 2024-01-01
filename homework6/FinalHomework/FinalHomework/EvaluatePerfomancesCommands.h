@@ -88,12 +88,13 @@ public:
 	Sequential(cmdInfo);
 
 
-	BOOL failedToLoadImage();
 	void loadImage();
 	void executeInverse(vector<Pixel>&);
 	void executeGrey(vector<Pixel>&);
-	BOOL writeGreyImage(vector<Pixel>&, wstring);
-	BOOL writeInverseImage(vector<Pixel>&, wstring);
+	
+	BOOL failedToLoadImage();
+	BOOL writeGreyImage(vector<Pixel>&, wstring, evPerfResults&);
+	BOOL writeInverseImage(vector<Pixel>&, wstring, evPerfResults&);
 };
 
 class SequentialCommand : public Command {

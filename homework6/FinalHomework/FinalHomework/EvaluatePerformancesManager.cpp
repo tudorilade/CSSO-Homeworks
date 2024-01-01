@@ -1,10 +1,11 @@
 #include "EvaluatePerformancesManager.h"
 
-EvaluatePerformancesManager::EvaluatePerformancesManager(HWND hWnd, evInput input, ShowImages& showImages) : Manager(hWnd)
+EvaluatePerformancesManager::EvaluatePerformancesManager(
+	HWND hWnd,HINSTANCE hInst, evInput input, ShowImages& showImages
+) : Manager(hWnd), showImages(&showImages), hInst(hInst)
 {
 	this->bitmapInput = input;
 	this->logger = GetDlgItem(hWnd, ID_LOG_WINDOW_E);
-	this->showImages = showImages;
 	this->bitmapInput.adjustPaths(this->fileHandler);
 	this->bitmapInput.setImageName();
 }
@@ -12,7 +13,7 @@ EvaluatePerformancesManager::EvaluatePerformancesManager(HWND hWnd, evInput inpu
 
 void EvaluatePerformancesManager::execute()
 {
-//	this->LOG(this->logger, "Creating the initial setup....", TRUE);
+	this->LOG(this->logger, "Creating the initial setup....", TRUE);
 
 	if (!this->setupEvaluateDirAndFiles())
 	{
@@ -20,18 +21,18 @@ void EvaluatePerformancesManager::execute()
 		this->LOG(this->logger, this->fileHandler.getLastError().c_str(), TRUE);
 		return;
 	}
-	//this->LOG(this->logger, "Successfully created initial setup....", TRUE);
+	this->LOG(this->logger, "Successfully created initial setup....", TRUE);
 
-	//this->LOG(this->logger, "Extracting bitmap header info....", TRUE);
+	this->LOG(this->logger, "Extracting bitmap header info....", TRUE);
 	
 	// collect bmp header info and display
 	this->displayBitmapHeaders();
-	//this->LOG(this->logger, "Begin the execution of tests...", TRUE);
+	this->LOG(this->logger, "Begin the execution of tests...", TRUE);
 	
 
 	// run tests
 	this->runTests();
-	//this->LOG(this->logger, "Execution of tests is finalized", TRUE);
+	this->LOG(this->logger, "Execution of tests is finalized", TRUE);
 }
 
 /* Method responsible for runing tests based on user input
@@ -53,13 +54,37 @@ void EvaluatePerformancesManager::runTests()
 	switch (bitmapInput.testType)
 	{
 	case COMBO_CHOICE_3_INT:
-
-		this->command = new SequentialCommand(cInfo);
-		this->command->execute(timeResults);
+		this->invokeSequentialTest(timeResults, cInfo);
 		break;
 	}
 }
 
+void EvaluatePerformancesManager::invokeSequentialTest(evPerfResults& timeResults, cmdInfo& cInfo)
+{
+	this->command = new SequentialCommand(cInfo);
+	this->command->execute(timeResults);
+
+	if (!timeResults.lastError.empty())
+	{
+		this->LOG(logger, timeResults.lastError.c_str(), TRUE);
+		return;
+	}
+
+	this->showImages->showEvaluateGrayImage = true;
+	this->showImages->showEvaluateReverseImage = true;
+	this->showImages->loadImage(timeResults.greyPath.c_str(), this->mainWindow, this->hInst, GRAY_IMAGE);
+	this->showImages->loadImage(timeResults.inversePath.c_str(), this->mainWindow, this->hInst, INVERSE_IMAGE);
+	this->displayExecutionTime(timeResults);
+}
+
+void EvaluatePerformancesManager::displayExecutionTime(evPerfResults& timeRes)
+{
+	HWND hExecTimeGrey = GetDlgItem(this->mainWindow, ID_EXEC_TIME_GREY);
+	SetWindowTextW(hExecTimeGrey, timeRes.grayScaleTiming.c_str());
+
+	HWND hExecInverse = GetDlgItem(this->mainWindow, ID_EXEC_TIME_INVERSE);
+	SetWindowTextW(hExecInverse, timeRes.inverseScaleTiming.c_str());
+}
 
 BOOL EvaluatePerformancesManager::setupEvaluateDirAndFiles()
 {
@@ -98,8 +123,8 @@ void EvaluatePerformancesManager::displayBitmapHeaders()
 		return;
 	}
 
-//	SetWindowText(hBitMapWindow, this->bHeadersInfo.toString().c_str());
-//	this->LOG(this->logger, "Successfully extracted bitmap header info....", TRUE);
+	SetWindowText(hBitMapWindow, this->bHeadersInfo.toString().c_str());
+	this->LOG(this->logger, "Successfully extracted bitmap header info....", TRUE);
 }
 
 

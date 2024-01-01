@@ -27,17 +27,20 @@ class EvaluatePerformancesManager : public Manager
 {
 private:
 	evInput bitmapInput;
-	ShowImages showImages;
+	ShowImages* showImages;
 	bHeaders bHeadersInfo;
 	Command* command;
+	HINSTANCE hInst;
 
 public:
 	EvaluatePerformancesManager() : Manager() {};
-	EvaluatePerformancesManager(HWND, evInput, ShowImages&);
+	EvaluatePerformancesManager(HWND, HINSTANCE, evInput, ShowImages&);
 
 	void execute() override;
 	void displayBitmapHeaders();
 	void runTests();
+	void invokeSequentialTest(evPerfResults&, cmdInfo&);
+	void displayExecutionTime(evPerfResults&);
 
 	BOOL setupEvaluateDirAndFiles();
 	BOOL static isInputValid(evInput&);

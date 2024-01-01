@@ -34,6 +34,9 @@ typedef struct MyPerformances {
 typedef struct EvaluatePerformancesR {
 	wstring grayScaleTiming;
 	wstring inverseScaleTiming;
+	wstring greyPath;
+	wstring inversePath;
+	wstring lastError;
 } evPerfResults;
 
 
