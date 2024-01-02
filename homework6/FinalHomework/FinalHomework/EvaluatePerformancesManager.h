@@ -39,7 +39,7 @@ public:
 	void execute() override;
 	void displayBitmapHeaders();
 	void runTests();
-	void invokeSequentialTest(evPerfResults&, cmdInfo&);
+	void invokeTest(evPerfResults&, cmdInfo&, DWORD);
 	void displayExecutionTime(evPerfResults&);
 
 	BOOL setupEvaluateDirAndFiles();

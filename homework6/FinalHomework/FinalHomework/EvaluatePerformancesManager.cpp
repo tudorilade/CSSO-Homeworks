@@ -53,15 +53,26 @@ void EvaluatePerformancesManager::runTests()
 
 	switch (bitmapInput.testType)
 	{
+	case COMBO_CHOICE_1_INT:
+		this->invokeTest(timeResults, cInfo, COMBO_CHOICE_1_INT);
+		break;
 	case COMBO_CHOICE_3_INT:
-		this->invokeSequentialTest(timeResults, cInfo);
+		this->invokeTest(timeResults, cInfo, COMBO_CHOICE_3_INT);
 		break;
 	}
 }
 
-void EvaluatePerformancesManager::invokeSequentialTest(evPerfResults& timeResults, cmdInfo& cInfo)
+void EvaluatePerformancesManager::invokeTest(evPerfResults& timeResults, cmdInfo& cInfo, DWORD testType)
 {
-	this->command = new SequentialCommand(cInfo);
+	switch (testType) {
+	case COMBO_CHOICE_1_INT:
+		this->command = new StaticCommand(cInfo);
+		break;
+	case COMBO_CHOICE_3_INT:
+		this->command = new SequentialCommand(cInfo);
+		break;
+	}
+
 	this->command->execute(timeResults);
 
 	if (!timeResults.lastError.empty())

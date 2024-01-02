@@ -35,6 +35,20 @@ string BitmapHeadersInfo::toString() {
 }
 
 
+//
+// Definition of helper thread function 
+//
+
+DWORD WINAPI ThreadFunction(LPVOID lpParam) {
+	ThreadData* data = (ThreadData*)lpParam;
+	if (data->greyCommand)
+		data->staticObj->executeGrey(data->result, data->imageChunk);
+	else
+		data->staticObj->executeInverse(data->result, data->imageChunk);
+	return 0;
+}
+
+
 // 
 // Definition of Command Required Info
 //
@@ -275,6 +289,7 @@ Base::Base(cmdInfo cInfo)
 void Base::loadImage()
 {
 	this->cInfo.loadImage(this->imagePixels);
+	this->sizeImagePixels = this->imagePixels.size();
 }
 
 BOOL Base::failedToLoadImage()
@@ -301,6 +316,32 @@ BOOL Base::writeInverseImage(vector<Pixel>& resultInverse, wstring time, evPerfR
 		return FALSE;
 
 	return TRUE;
+}
+
+int Base::getNumberOfPhysicalProcessors() {
+	DWORD length = 0;
+	BOOL result = GetLogicalProcessorInformation(nullptr, &length);
+	if (result || GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+		return -1;
+	}
+
+	std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer(length / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
+	result = GetLogicalProcessorInformation(buffer.data(), &length);
+	if (!result) {
+		return -1;
+	}
+
+	int physicalProcessorCount = 0;
+	for (const auto& info : buffer) {
+		if (info.Relationship == RelationProcessorCore) {
+			physicalProcessorCount++;
+		}
+	}
+	return physicalProcessorCount * 2;
+}
+
+size_t Base::getSizeOfImage() {
+	return sizeImagePixels;
 }
 
 
@@ -370,13 +411,13 @@ void SequentialCommand::execute(evPerfResults& evRes)
 
 
 //
-// Implementation of Dynamic and Dynamic command
+// Implementation of Static and Static command
 //
 
-Dynamic::Dynamic(cmdInfo cmd) : Base(cmd) {};
+Static::Static(cmdInfo cmd) : Base(cmd) {};
 
 
-void Dynamic::executeGrey(vector<Pixel>& resultGrey, vector<Pixel>& imageChunk)
+void Static::executeGrey(vector<Pixel>& resultGrey, vector<Pixel>& imageChunk)
 {
 	for (Pixel& orgPixel : imageChunk)
 	{
@@ -384,7 +425,7 @@ void Dynamic::executeGrey(vector<Pixel>& resultGrey, vector<Pixel>& imageChunk)
 	}
 }
 
-void Dynamic::executeInverse(vector<Pixel>& resultInverse, vector<Pixel>& imageChunk)
+void Static::executeInverse(vector<Pixel>& resultInverse, vector<Pixel>& imageChunk)
 {
 	for (Pixel& orgPixel : imageChunk)
 	{
@@ -392,43 +433,81 @@ void Dynamic::executeInverse(vector<Pixel>& resultInverse, vector<Pixel>& imageC
 	}
 }
 
-DynamicCommand::DynamicCommand(cmdInfo cmd) : Command()
+StaticCommand::StaticCommand(cmdInfo cmd) : Command()
 {
-	this->dynamic = Dynamic(cmd);
+	this->staticc = Static(cmd);
 }
 
-void DynamicCommand::execute(evPerfResults& evRes)
+void StaticCommand::execute(evPerfResults& evRes)
 {
 	vector<Pixel> resultGrey, resultInverse;
 
-	this->dynamic.loadImage();
+	this->staticc.loadImage();
 
-	if (this->dynamic.failedToLoadImage())
+	if (this->staticc.failedToLoadImage())
 	{
 		evRes.lastError = L"Couldn't load the image for processing. Error code: " + to_wstring(GetLastError());
 		return;
 	}
 
+	int nrWorkers = this->staticc.getNumberOfPhysicalProcessors();
+	if (nrWorkers < 0)
+	{
+		evRes.lastError = L"Couldn't get the number of processors. Error code: " + to_wstring(GetLastError());
+		return;
+	}
+
 	// Executing grey operation
 	auto start = std::chrono::high_resolution_clock::now();
-	this->dynamic.executeGrey(resultGrey);
+	this->processParallel(resultGrey, nrWorkers, true, false);
 	auto end = std::chrono::high_resolution_clock::now();
 
 	std::chrono::duration<double, std::micro> sequentialTime = end - start;
 	evRes.grayScaleTiming = to_wstring((int)sequentialTime.count()) + L"ms";
-	if (!this->dynamic.writeGreyImage(resultGrey, evRes.grayScaleTiming, evRes))
+	if (!this->staticc.writeGreyImage(resultGrey, evRes.grayScaleTiming, evRes))
 		evRes.lastError = L"Couldn't create the grey image. Error code: " + to_wstring(GetLastError());
 
 	resultGrey.clear();
 
 	// Executing inverse operation
 	start = std::chrono::high_resolution_clock::now();
-	this->dynamic.executeInverse(resultInverse);
+	this->processParallel(resultInverse, nrWorkers, false, true);
 	end = std::chrono::high_resolution_clock::now();
 	sequentialTime = end - start;
 	evRes.inverseScaleTiming = to_wstring((int)sequentialTime.count()) + L"ms";
 
-	if (!this->dynamic.writeInverseImage(resultInverse, evRes.inverseScaleTiming, evRes))
+	if (!this->staticc.writeInverseImage(resultInverse, evRes.inverseScaleTiming, evRes))
 		evRes.lastError = L"Couldn't create the grey image. Error code: " + to_wstring(GetLastError());
 	resultInverse.clear();
+}
+
+void StaticCommand::processParallel(vector<Pixel>& finalResult, int nrWorkers, bool processGrey, bool processInverse)
+{
+	vector<HANDLE> hThreads(nrWorkers);
+	vector<ThreadData> threadData(nrWorkers);
+	int chunkSize = this->staticc.getSizeOfImage() / nrWorkers;
+
+	// divide the image and spwan threads
+	for (int i = 0; i < nrWorkers; ++i) {
+		int start = i * chunkSize;
+		int end = (i == nrWorkers - 1) ? this->staticc.getSizeOfImage() : (i + 1) * chunkSize;
+
+		threadData[i].staticObj = &this->staticc;
+		threadData[i].imageChunk.assign(
+			this->staticc.imagePixels.begin() + start,
+			this->staticc.imagePixels.begin() + end
+		);
+		threadData[i].greyCommand = processGrey;
+		threadData[i].inverseCommand = processInverse;
+		hThreads[i] = CreateThread(NULL, 0, ThreadFunction, &threadData[i], 0, NULL);
+	}
+
+	// wait for all threads to complete
+	WaitForMultipleObjects(nrWorkers, hThreads.data(), TRUE, INFINITE);
+
+	// combine results
+	for (int i = 0; i < nrWorkers; ++i) {
+		finalResult.insert(finalResult.end(), threadData[i].result.begin(), threadData[i].result.end());
+		CloseHandle(hThreads[i]);
+	}
 }

@@ -81,15 +81,19 @@ protected:
 	cmdInfo cInfo;
 	InverseScaleCommand inverseCommand = InverseScaleCommand();
 	GreyScaleCommand greyScaleCommand = GreyScaleCommand();
-	vector<Pixel> imagePixels;
+	size_t sizeImagePixels;
 
 public:
+	vector<Pixel> imagePixels;
+
 	Base() {  };
 	Base(cmdInfo);
 	void loadImage();
 	BOOL failedToLoadImage();
 	BOOL writeGreyImage(vector<Pixel>&, wstring, evPerfResults&);
 	BOOL writeInverseImage(vector<Pixel>&, wstring, evPerfResults&);
+	int getNumberOfPhysicalProcessors();
+	size_t getSizeOfImage();
 };
 
 
@@ -116,7 +120,6 @@ public:
 	void execute(evPerfResults&) override;
 	string getExecuteLog() { return "Executing sequential command..."; };
 };
-
 
 
 //
@@ -147,20 +150,32 @@ public:
 // Command for static
 //
 
-class Static {
-private:
-	string imagePath;
-	DirFileHandler fHandler;
-
+class Static : public Base {
 public:
 	Static() {};
-	Static(string, DirFileHandler);
+	Static(cmdInfo);
+
+	void executeInverse(vector<Pixel>&, vector<Pixel>&);
+	void executeGrey(vector<Pixel>&, vector<Pixel>&);
 };
 
 class StaticCommand : public Command {
-	Static sTatic = Static();
+protected:
+	Static staticc;
 public:
+
+	StaticCommand() : Command() {};
+	StaticCommand(cmdInfo);
 	void execute(myPerfResults&) override {};
 	void execute(evPerfResults&) override;
+	void processParallel(vector<Pixel>&, int, bool, bool);
+	string getExecuteLog() { return "Executing static command..."; };
 };
 
+struct ThreadData {
+	Static* staticObj;
+	vector<Pixel> imageChunk;
+	vector<Pixel> result;
+	bool greyCommand;
+	bool inverseCommand;
+};
