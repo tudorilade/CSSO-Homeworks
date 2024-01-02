@@ -68,6 +68,9 @@ void EvaluatePerformancesManager::invokeTest(evPerfResults& timeResults, cmdInfo
 	case COMBO_CHOICE_1_INT:
 		this->command = new StaticCommand(cInfo);
 		break;
+	case COMBO_CHOICE_2_INT:
+		this->command = new DynamicCommand(cInfo);
+		break;
 	case COMBO_CHOICE_3_INT:
 		this->command = new SequentialCommand(cInfo);
 		break;

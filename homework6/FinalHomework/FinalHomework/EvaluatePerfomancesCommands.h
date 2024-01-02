@@ -143,6 +143,7 @@ public:
 	DynamicCommand(cmdInfo);
 	void execute(myPerfResults&) override {};
 	void execute(evPerfResults&) override;
+	void processParallel(vector<Pixel>&, int, bool, bool);
 	string getExecuteLog() { return "Executing dynamic command..."; };
 };
 

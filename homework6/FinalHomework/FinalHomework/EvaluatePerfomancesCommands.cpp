@@ -511,3 +511,91 @@ void StaticCommand::processParallel(vector<Pixel>& finalResult, int nrWorkers, b
 		CloseHandle(hThreads[i]);
 	}
 }
+
+
+//
+// Implementation of Dynamic and Dynamic command
+//
+
+Dynamic::Dynamic(cmdInfo cmd) : Base(cmd) {};
+
+
+void Dynamic::executeGrey(vector<Pixel>& resultGrey, vector<Pixel>& imageChunk)
+{
+	for (Pixel& orgPixel : imageChunk)
+	{
+		this->greyScaleCommand.execute(orgPixel, resultGrey);
+	}
+}
+
+void Dynamic::executeInverse(vector<Pixel>& resultInverse, vector<Pixel>& imageChunk)
+{
+	for (Pixel& orgPixel : imageChunk)
+	{
+		this->inverseCommand.execute(orgPixel, resultInverse);
+	}
+}
+
+DynamicCommand::DynamicCommand(cmdInfo cmd) : Command()
+{
+	this->dynamic = Dynamic(cmd);
+}
+
+void DynamicCommand::execute(evPerfResults& evRes)
+{
+	return;
+
+	// Am pus aici return, doar ca sa nu se ruleze asta; cand crezi ca ai facut implementarea sa 
+	// proceseze dynamic aici, scoate return ul de sus.
+	vector<Pixel> resultGrey, resultInverse;
+
+	this->dynamic.loadImage();
+
+	if (this->dynamic.failedToLoadImage())
+	{
+		evRes.lastError = L"Couldn't load the image for processing. Error code: " + to_wstring(GetLastError());
+		return;
+	}
+
+	int nrWorkers = this->dynamic.getNumberOfPhysicalProcessors();
+	if (nrWorkers < 0)
+	{
+		evRes.lastError = L"Couldn't get the number of processors. Error code: " + to_wstring(GetLastError());
+		return;
+	}
+
+	// Executing grey operation
+	auto start = std::chrono::high_resolution_clock::now();
+	this->processParallel(resultGrey, nrWorkers, true, false);
+	auto end = std::chrono::high_resolution_clock::now();
+
+	std::chrono::duration<double, std::micro> sequentialTime = end - start;
+	evRes.grayScaleTiming = to_wstring((int)sequentialTime.count()) + L"ms";
+	if (!this->dynamic.writeGreyImage(resultGrey, evRes.grayScaleTiming, evRes))
+		evRes.lastError = L"Couldn't create the grey image. Error code: " + to_wstring(GetLastError());
+
+	resultGrey.clear();
+
+	// Executing inverse operation
+	start = std::chrono::high_resolution_clock::now();
+	this->processParallel(resultInverse, nrWorkers, false, true);
+	end = std::chrono::high_resolution_clock::now();
+	sequentialTime = end - start;
+	evRes.inverseScaleTiming = to_wstring((int)sequentialTime.count()) + L"ms";
+
+	if (!this->dynamic.writeInverseImage(resultInverse, evRes.inverseScaleTiming, evRes))
+		evRes.lastError = L"Couldn't create the grey image. Error code: " + to_wstring(GetLastError());
+	resultInverse.clear();
+}
+
+void DynamicCommand::processParallel(vector<Pixel>& finalResult, int nrWorkers, bool processGrey, bool processInverse)
+{
+	// TODO: to be implemented as for dynamic way
+	// Aici trebuie sa tinem urmatoarele lucruri in vedere: 
+	// 1. Pixelii trebuie sa fie ordonati. noi avem load balancing, deci cand un thread termina, parintele 
+	// trimite un nou chunk la procesare. nestiind cand termina primul thread, ordinea nu este garantata (Adica toti pixelii sunt ordonati, ca sa rezulte imaginea initiala)
+	// deci trebuie sa avem grija cum tinem ordinea respectiva. am mai vazut si cu chatgpt, da niste sugestii bune.
+	// in rest, ar trebui sa fie destul de similar cu Static, cu singura conditie ca vom avea Eventuri (Setevent din alea), 
+	// ca fiecare thread sa semnalizeze cand si-a terminat treaba pt a putea primi chunk uri de procesare.
+	// asta-i tot. Daca e facuta corect procesarea asta, ar trebui sa vezi rezultatul.
+}
