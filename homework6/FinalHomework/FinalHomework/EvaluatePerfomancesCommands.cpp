@@ -1,4 +1,4 @@
-#include "EvaluatePerfomancesCommands.h"
+﻿#include "EvaluatePerfomancesCommands.h"
 
 //
 // Definition of BitmapHeadersInfo struct
@@ -46,6 +46,28 @@ DWORD WINAPI ThreadFunction(LPVOID lpParam) {
 	else
 		data->staticObj->executeInverse(data->result, data->imageChunk);
 	return 0;
+}
+
+
+DWORD WINAPI DynamicThreadFunction(LPVOID lpParam) {
+	DynamicThreadData* data = (DynamicThreadData*)lpParam;
+
+	while (true) {
+		WaitForSingleObject(data->eventHandle, INFINITE); // wait for a signal to start processing
+
+		// check for a signal to exit the thread
+		if (data->terminateThread) {
+			return 0;
+		}
+
+		if (data->greyCommand)
+			data->dynamicObj->executeGrey(data->indexedResult, data->indexedChunk);
+		else
+			data->dynamicObj->executeInverse(data->indexedResult, data->indexedChunk);
+
+		// signal the main thread that this thread is ready for more work
+		SetEvent(data->finishedEventHandle);
+	}
 }
 
 
@@ -235,6 +257,21 @@ Pixel GreyScale::operation(Pixel& originalPixel)
 }
 
 /**
+* Method responsible for converting a pixel in a grey pixel
+*/
+pair<size_t, Pixel> GreyScale::operation(pair<size_t, Pixel*>& originalPixel)
+{
+	pair<size_t, Pixel> indexedGreyPixel;
+
+	uint8_t gray = static_cast<uint8_t>(0.299 * (originalPixel.second->red) + 0.587 * originalPixel.second->green + 0.114 * originalPixel.second->blue);
+	indexedGreyPixel.second.red = indexedGreyPixel.second.green = indexedGreyPixel.second.blue = gray;
+	indexedGreyPixel.second.alpha = originalPixel.second->alpha;
+	indexedGreyPixel.first = originalPixel.first;
+	return indexedGreyPixel;
+}
+
+
+/**
 * Command responsible for converting a pixel in a grey one and placing it in a result vector
 */
 void GreyScaleCommand::execute(vector<Pixel>& originalPixels, vector<Pixel>& resultPixel)
@@ -246,6 +283,11 @@ void GreyScaleCommand::execute(vector<Pixel>& originalPixels, vector<Pixel>& res
 }
 
 void GreyScaleCommand::execute(Pixel& originalPixels, vector<Pixel>& resultPixel)
+{
+	resultPixel.emplace_back(grey.operation(originalPixels));
+}
+
+void GreyScaleCommand::execute(pair<size_t, Pixel*>& originalPixels, vector<pair<size_t, Pixel>>& resultPixel)
 {
 	resultPixel.emplace_back(grey.operation(originalPixels));
 }
@@ -264,6 +306,18 @@ Pixel InverseScale::operation(Pixel& originalPixel)
 	return inversedPixel;
 }
 
+pair<size_t, Pixel> InverseScale::operation(pair<size_t, Pixel*>& originalPixel)
+{
+	pair<size_t, Pixel> inversedIndexedPixel;
+	inversedIndexedPixel.second.red = 0xFF - originalPixel.second->red;
+	inversedIndexedPixel.second.blue = 0xFF - originalPixel.second->blue;
+	inversedIndexedPixel.second.green = 0xFF - originalPixel.second->green;
+	inversedIndexedPixel.second.alpha = originalPixel.second->alpha;
+	inversedIndexedPixel.first = originalPixel.first;
+	return inversedIndexedPixel;
+}
+
+
 /**
 * Command responsible for converting a pixel in a grey one and placing it in a result vector
 */
@@ -276,6 +330,11 @@ void InverseScaleCommand::execute(vector<Pixel>& originalPixels, vector<Pixel>& 
 }
 
 void InverseScaleCommand::execute(Pixel& originalPixels, vector<Pixel>& resultPixel)
+{
+	resultPixel.emplace_back(inverse.operation(originalPixels));
+}
+
+void InverseScaleCommand::execute(pair<size_t, Pixel*>& originalPixels, vector<pair<size_t, Pixel>>& resultPixel)
 {
 	resultPixel.emplace_back(inverse.operation(originalPixels));
 }
@@ -520,21 +579,35 @@ void StaticCommand::processParallel(vector<Pixel>& finalResult, int nrWorkers, b
 Dynamic::Dynamic(cmdInfo cmd) : Base(cmd) {};
 
 
-void Dynamic::executeGrey(vector<Pixel>& resultGrey, vector<Pixel>& imageChunk)
+void Dynamic::executeGrey(vector<pair<size_t, Pixel>>& resultGrey, vector<pair<size_t, Pixel*>>& imageChunk)
 {
-	for (Pixel& orgPixel : imageChunk)
+	for (pair<size_t, Pixel*>& orgPixel : imageChunk)
 	{
 		this->greyScaleCommand.execute(orgPixel, resultGrey);
 	}
 }
 
-void Dynamic::executeInverse(vector<Pixel>& resultInverse, vector<Pixel>& imageChunk)
+void Dynamic::executeInverse(vector<pair<size_t, Pixel>>& resultInverse, vector<pair<size_t, Pixel*>>& imageChunk)
 {
-	for (Pixel& orgPixel : imageChunk)
+	for (pair<size_t, Pixel*>& orgPixel : imageChunk)
 	{
 		this->inverseCommand.execute(orgPixel, resultInverse);
 	}
 }
+
+/**
+* Helper method for indexing the pixels for load balancing
+*/
+void Dynamic::assignIndexes()
+{
+	pair<size_t, Pixel*> indexedPixel;
+	for (size_t i = 0; i < this->sizeImagePixels; i++)
+	{
+		indexedPixel = make_pair(i, &this->imagePixels[i]);
+		this->indexedPixels.emplace_back(indexedPixel);
+	}
+}
+
 
 DynamicCommand::DynamicCommand(cmdInfo cmd) : Command()
 {
@@ -543,8 +616,6 @@ DynamicCommand::DynamicCommand(cmdInfo cmd) : Command()
 
 void DynamicCommand::execute(evPerfResults& evRes)
 {
-	return;
-
 	// Am pus aici return, doar ca sa nu se ruleze asta; cand crezi ca ai facut implementarea sa 
 	// proceseze dynamic aici, scoate return ul de sus.
 	vector<Pixel> resultGrey, resultInverse;
@@ -563,6 +634,8 @@ void DynamicCommand::execute(evPerfResults& evRes)
 		evRes.lastError = L"Couldn't get the number of processors. Error code: " + to_wstring(GetLastError());
 		return;
 	}
+
+	this->dynamic.assignIndexes();
 
 	// Executing grey operation
 	auto start = std::chrono::high_resolution_clock::now();
@@ -590,12 +663,101 @@ void DynamicCommand::execute(evPerfResults& evRes)
 
 void DynamicCommand::processParallel(vector<Pixel>& finalResult, int nrWorkers, bool processGrey, bool processInverse)
 {
-	// TODO: to be implemented as for dynamic way
-	// Aici trebuie sa tinem urmatoarele lucruri in vedere: 
-	// 1. Pixelii trebuie sa fie ordonati. noi avem load balancing, deci cand un thread termina, parintele 
-	// trimite un nou chunk la procesare. nestiind cand termina primul thread, ordinea nu este garantata (Adica toti pixelii sunt ordonati, ca sa rezulte imaginea initiala)
-	// deci trebuie sa avem grija cum tinem ordinea respectiva. am mai vazut si cu chatgpt, da niste sugestii bune.
-	// in rest, ar trebui sa fie destul de similar cu Static, cu singura conditie ca vom avea Eventuri (Setevent din alea), 
-	// ca fiecare thread sa semnalizeze cand si-a terminat treaba pt a putea primi chunk uri de procesare.
-	// asta-i tot. Daca e facuta corect procesarea asta, ar trebui sa vezi rezultatul.
+	vector<HANDLE> hEvents(nrWorkers);
+	vector<HANDLE> finishedEventHandles(nrWorkers);
+	vector<HANDLE> hThreads(nrWorkers);
+	vector<DynamicThreadData> threadData(nrWorkers);
+
+	int totalIterations = this->dynamic.getSizeOfImage();
+	int remainingIterations = totalIterations;
+	int chunkSize= 1000000;
+	int nextChunkStartIndex = 0;
+
+	for (int i = 0; i < nrWorkers; ++i) {
+		hEvents[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
+		finishedEventHandles[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
+		threadData[i].eventHandle = hEvents[i];
+		threadData[i].finishedEventHandle = finishedEventHandles[i];
+		threadData[i].greyCommand = processGrey;
+		threadData[i].inverseCommand = processInverse;
+
+		int nextChunkSize = min(chunkSize, remainingIterations);
+		auto chunkStart = this->dynamic.indexedPixels.begin() + nextChunkStartIndex;
+
+		int possibleEnd = nextChunkStartIndex + nextChunkSize;
+
+		auto chunkEnd = (possibleEnd >= totalIterations) ?
+			this->dynamic.indexedPixels.end() : chunkStart + nextChunkSize;
+
+		threadData[i].indexedChunk.clear();
+		threadData[i].indexedChunk.assign(chunkStart, chunkEnd);
+
+		nextChunkStartIndex += nextChunkSize;
+		remainingIterations -= nextChunkSize;
+
+		hThreads[i] = CreateThread(NULL, 0, DynamicThreadFunction, &threadData[i], 0, NULL);
+	}
+
+	// threads can start to process the assgined chunks
+	for (int i = 0; i < nrWorkers; i++)
+		SetEvent(hEvents[i]);
+
+	while (remainingIterations > 0) {
+		DWORD waitResult = WaitForMultipleObjects(nrWorkers, finishedEventHandles.data(), FALSE, INFINITE);
+		int index = waitResult - WAIT_OBJECT_0;
+
+		int nextChunkSize = min(chunkSize, remainingIterations);
+		auto chunkStart = this->dynamic.indexedPixels.begin() + nextChunkStartIndex;
+		
+		int possibleEnd = nextChunkStartIndex + nextChunkSize;
+
+		auto chunkEnd = (possibleEnd >= totalIterations) ?
+			this->dynamic.indexedPixels.end() : chunkStart + nextChunkSize;
+
+
+		threadData[index].indexedChunk.clear();
+		threadData[index].indexedChunk.assign(chunkStart, chunkEnd);
+
+		nextChunkStartIndex += nextChunkSize;
+		remainingIterations -= nextChunkSize;
+		SetEvent(hEvents[index]);
+	}
+
+
+	// asteptam finalizarea ultimului chunk
+	WaitForMultipleObjects(nrWorkers, finishedEventHandles.data(), FALSE, INFINITE);
+
+	for (int i = 0; i < nrWorkers; ++i) {
+		threadData[i].terminateThread = true; // set the flag to exit the while loop
+		SetEvent(threadData[i].eventHandle); // signal the thread so it can exit
+	}
+
+	WaitForMultipleObjects(nrWorkers, hThreads.data(), TRUE, INFINITE);
+
+
+	vector<pair<size_t, Pixel>> indexedResults;
+	// combining the results
+	for (int i = 0; i < nrWorkers; ++i) {
+		indexedResults.insert(indexedResults.end(), threadData[i].indexedResult.begin(), threadData[i].indexedResult.end());
+		CloseHandle(hThreads[i]);
+		CloseHandle(hEvents[i]);
+		CloseHandle(finishedEventHandles[i]);
+	}
+	
+	// sort the pixels based on their index to guarantee the integrity of the image
+	sort(
+		indexedResults.begin(),
+		indexedResults.end(),
+		[](const pair<size_t, Pixel>& a, const pair<size_t, Pixel>& b) {
+		return a.first < b.first;
+		}
+	);
+
+	// add the sorted pixels to the result vector
+	finalResult.clear();
+	finalResult.reserve(indexedResults.size());
+
+	for (const auto& indexedPixel : indexedResults) {
+		finalResult.emplace_back(indexedPixel.second);
+	}
 }

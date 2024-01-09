@@ -56,6 +56,9 @@ void EvaluatePerformancesManager::runTests()
 	case COMBO_CHOICE_1_INT:
 		this->invokeTest(timeResults, cInfo, COMBO_CHOICE_1_INT);
 		break;
+	case COMBO_CHOICE_2_INT:
+		this->invokeTest(timeResults, cInfo, COMBO_CHOICE_2_INT);
+		break;
 	case COMBO_CHOICE_3_INT:
 		this->invokeTest(timeResults, cInfo, COMBO_CHOICE_3_INT);
 		break;

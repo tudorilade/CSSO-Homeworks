@@ -5,6 +5,8 @@
 #include <vector>
 #include <chrono>
 #include <Aclapi.h>
+#include <utility>
+#include <algorithm>
 
 
 typedef struct BitmapHeadersInfo {
@@ -46,6 +48,7 @@ typedef struct CommandRequiredInfo
 class GreyScale {
 public:
 	Pixel operation(Pixel&);
+	pair<size_t, Pixel> operation(pair<size_t, Pixel*>&);
 };
 
 class GreyScaleCommand : public Command {
@@ -55,6 +58,8 @@ public:
 	void execute(myPerfResults&) override {};
 	void execute(vector<Pixel>&, vector<Pixel>&);
 	void execute(Pixel&, vector<Pixel>&);
+	void execute(pair<size_t, Pixel*>&, vector<pair<size_t, Pixel>>&);
+
 	string getExecuteLog() override { return "Executing grey operation..."; };
 };
 
@@ -62,6 +67,7 @@ public:
 class InverseScale {
 public:
 	Pixel operation(Pixel&);
+	pair<size_t, Pixel> operation(pair<size_t, Pixel*>&);
 };
 
 class InverseScaleCommand : public Command {
@@ -71,6 +77,8 @@ public:
 	void execute(myPerfResults&) override {};
 	void execute(vector<Pixel>&, vector<Pixel>&);
 	void execute(Pixel&, vector<Pixel>&);
+	void execute(pair<size_t, Pixel*>&, vector<pair<size_t, Pixel>>&);
+
 	string getExecuteLog() override {return "Executing grey operation...";}
 };
 
@@ -92,6 +100,9 @@ public:
 	BOOL failedToLoadImage();
 	BOOL writeGreyImage(vector<Pixel>&, wstring, evPerfResults&);
 	BOOL writeInverseImage(vector<Pixel>&, wstring, evPerfResults&);
+	BOOL writeGreyImage(vector<pair<size_t, Pixel>>&, wstring, evPerfResults&);
+	BOOL writeInverseImage(vector<pair<size_t, Pixel>>&, wstring, evPerfResults&);
+
 	int getNumberOfPhysicalProcessors();
 	size_t getSizeOfImage();
 };
@@ -127,12 +138,15 @@ public:
 //
 
 class Dynamic : public Base {
+
 public:
 	Dynamic() {};
 	Dynamic(cmdInfo);
+	vector<pair<size_t, Pixel*>> indexedPixels;
 
-	void executeInverse(vector<Pixel>&, vector<Pixel>&);
-	void executeGrey(vector<Pixel>&, vector<Pixel>&);
+	void assignIndexes();
+	void executeInverse(vector<pair<size_t, Pixel>>&, vector<pair<size_t, Pixel*>>&);
+	void executeGrey(vector<pair<size_t, Pixel>>&, vector<pair<size_t, Pixel*>>&);
 };
 
 class DynamicCommand : public Command {
@@ -179,4 +193,16 @@ struct ThreadData {
 	vector<Pixel> result;
 	bool greyCommand;
 	bool inverseCommand;
+};
+
+
+struct DynamicThreadData {
+	Dynamic* dynamicObj;
+	vector<pair<size_t, Pixel*>> indexedChunk;
+	vector<pair<size_t, Pixel>> indexedResult;
+	HANDLE eventHandle;
+	HANDLE finishedEventHandle;
+	bool greyCommand;
+	bool inverseCommand;
+	bool terminateThread = false;
 };
