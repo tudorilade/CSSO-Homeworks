@@ -141,6 +141,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     Manager* manager;
     HWND hLogWindow, window;
     int vitezaTestului, asemanare;
+    vector<Pixel> staticImage;
+    vector<Pixel> dinamicImage;
+    execTime executionTimes;
     switch (message)
     {
     case WM_CREATE:
@@ -207,15 +210,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     EvaluatePerformancesManager::LOG(hLogWindow, "Input invalid. Check that all paths have been supplied.", TRUE);
                     break;
                 }
-                vitezaTestului = startComparing(evaluateInput);
+                vitezaTestului = startComparing(evaluateInput, executionTimes);
                 hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_IMAGES);
                 if (vitezaTestului == 1) {
-                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel static este mai rapid", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel static este mai rapid Cu timp de executie : ", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, executionTimes.staticTime.c_str(), TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel dinamic are ca timp de executie : ", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, executionTimes.dinamicTime.c_str(), TRUE);
                 }
                 else if (vitezaTestului == 2){
-                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel dinamic este mai rapid", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel dinamic este mai rapid. Cu timp de executie : ", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, executionTimes.dinamicTime.c_str(), TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel dinamic are ca timp de executie : ", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, executionTimes.staticTime.c_str(), TRUE);
                 }
-                //asemanare = getLevelAlike();
+                
+                loadImageForCompare(staticImage, evaluateInput.static_imagePath);
+                loadImageForCompare(dinamicImage, evaluateInput.dinamic_imagePath);
+                if(comparePixelVectors(staticImage, dinamicImage))
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Imaginile sunt la fel!", TRUE);
+                else
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Imaginile sunt diferite!", TRUE);
+
+               
                 break;
             case ID_CLEAR_LOGS_IMAGES:
                 ClearEvaluatePerformancesWindows(hWnd);
