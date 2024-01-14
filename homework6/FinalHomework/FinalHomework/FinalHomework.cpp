@@ -213,24 +213,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 vitezaTestului = startComparing(evaluateInput, executionTimes);
                 hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_IMAGES);
                 if (vitezaTestului == 1) {
-                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel static este mai rapid Cu timp de executie : ", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel static este mai rapid, cu timp de executie : ", FALSE);
                     EvaluatePerformancesManager::LOG(hLogWindow, executionTimes.staticTime.c_str(), TRUE);
-                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel dinamic are ca timp de executie : ", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "\r\nCel dinamic are ca timp de executie : ", FALSE);
                     EvaluatePerformancesManager::LOG(hLogWindow, executionTimes.dinamicTime.c_str(), TRUE);
                 }
                 else if (vitezaTestului == 2){
-                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel dinamic este mai rapid. Cu timp de executie : ", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel dinamic este mai rapid, cu timp de executie : ", FALSE);
                     EvaluatePerformancesManager::LOG(hLogWindow, executionTimes.dinamicTime.c_str(), TRUE);
-                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel dinamic are ca timp de executie : ", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "\r\nCel dinamic are ca timp de executie : ", FALSE);
                     EvaluatePerformancesManager::LOG(hLogWindow, executionTimes.staticTime.c_str(), TRUE);
                 }
                 
                 loadImageForCompare(staticImage, evaluateInput.static_imagePath);
                 loadImageForCompare(dinamicImage, evaluateInput.dinamic_imagePath);
                 if(comparePixelVectors(staticImage, dinamicImage))
-                    EvaluatePerformancesManager::LOG(hLogWindow, "Imaginile sunt la fel!", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "\r\nImaginile sunt la fel!", TRUE);
                 else
-                    EvaluatePerformancesManager::LOG(hLogWindow, "Imaginile sunt diferite!", TRUE);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "\r\nImaginile sunt diferite!", TRUE);
 
                
                 break;
