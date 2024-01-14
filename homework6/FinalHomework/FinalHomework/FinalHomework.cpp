@@ -5,6 +5,7 @@
 #include "FinalHomework.h"
 #include "ComputePerformancesManager.h"
 #include "EvaluatePerformancesManager.h"
+#include "CompareImages.h"
 
 #define MAX_LOADSTRING 100
 
@@ -24,6 +25,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+void                CreateCompareGeneratedImages(HWND);
 void                CreateCustomMenu(HWND);
 void                CreateMyPerformances(HWND);
 void                CreateEvaluatePerformances(HWND);
@@ -138,7 +140,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     Manager* manager;
     HWND hLogWindow, window;
-    
+    int vitezaTestului, asemanare;
     switch (message)
     {
     case WM_CREATE:
@@ -150,6 +152,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             switch (wmId)
             {
             // events related to switch between windows
+            case ID_COMPARE_IMAGES:
+                ClearMainWindow(hWnd);
+                CreateCompareGeneratedImages(hWnd);
+                break;
+
             case ID_COMPUTE_MY_PERFORMANCES:
                 ClearMainWindow(hWnd);
                 CreateMyPerformances(hWnd);
@@ -164,7 +171,55 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 ClearMainWindow(hWnd);
                 CreateMainWindowText(hWnd);
                 break;
+                //events related to compare images
 
+            case ID_SELECT_INPUT_STATIC:
+                window = GetDlgItem(hWnd, ID_INPUT_STATIC_PATH_DISPLAY);
+                memset(imgPath, MAX_PATH, 0);
+                if (SUCCEEDED(SelectFile(hWnd, imgPath, MAX_PATH))) {
+                    evaluateInput.static_imagePath = wstring(imgPath);
+                    SetWindowTextW(window, imgPath);
+                    showImages.loadImage(imgPath, hWnd, hInst, EVALUATE_IMAGE);
+                }
+                else {
+                    hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_IMAGES);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Couldn't get the path for the test image", TRUE);
+                }
+                break;
+
+            case ID_SELECT_INPUT_DINAMIC:
+                window = GetDlgItem(hWnd, ID_INPUT_DINAMIC_PATH_DISPLAY);
+                memset(imgPath, MAX_PATH, 0);
+                if (SUCCEEDED(SelectFile(hWnd, imgPath, MAX_PATH))) {
+                    evaluateInput.dinamic_imagePath = wstring(imgPath);
+                    SetWindowTextW(window, imgPath);
+                    showImages.loadImage(imgPath, hWnd, hInst, GRAY_IMAGE);
+                }
+                else {
+                    hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_IMAGES);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Couldn't get the path for the test image", TRUE);
+                }
+                break;
+            case ID_RUN_COMPARE_IMAGES:
+                if (evaluateInput.static_imagePath.empty() && evaluateInput.dinamic_imagePath.empty())
+                {
+                    hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_IMAGES);
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Input invalid. Check that all paths have been supplied.", TRUE);
+                    break;
+                }
+                vitezaTestului = startComparing(evaluateInput);
+                hLogWindow = GetDlgItem(hWnd, ID_LOG_WINDOW_IMAGES);
+                if (vitezaTestului == 1) {
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel static este mai rapid", TRUE);
+                }
+                else if (vitezaTestului == 2){
+                    EvaluatePerformancesManager::LOG(hLogWindow, "Cel dinamic este mai rapid", TRUE);
+                }
+                //asemanare = getLevelAlike();
+                break;
+            case ID_CLEAR_LOGS_IMAGES:
+                ClearEvaluatePerformancesWindows(hWnd);
+                break;
              // events related to Evaluate my PC
             case ID_CLEAR_LOGS_E:
                 ClearEvaluatePerformancesWindows(hWnd);
@@ -183,6 +238,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     EvaluatePerformancesManager::LOG(hLogWindow, "Couldn't get the path for the test image", TRUE);
                 }
                 break;
+            
 
             case ID_SELECT_GRAY_OUTPUT:
                 window = GetDlgItem(hWnd, ID_GRAY_PATH_DISPLAY);
@@ -238,7 +294,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
-            }
+            } 
         }
         break;
     case WM_PAINT:
@@ -302,11 +358,70 @@ void CreateCustomMenu(HWND hWnd)
     AppendMenu(hSubMenu, MF_STRING, ID_HOME, "Home");
     AppendMenu(hSubMenu, MF_STRING, ID_COMPUTE_MY_PERFORMANCES, "My performances");
     AppendMenu(hSubMenu, MF_STRING, ID_EVALUATE_MY_PERFORMANCES, "Evaluate my PC");
+    AppendMenu(hSubMenu, MF_STRING, ID_COMPARE_IMAGES, "Compare the generated images");
     AppendMenu(hSubMenu, MF_SEPARATOR, 0, NULL);
     AppendMenu(hSubMenu, MF_STRING, IDM_EXIT, "Exit");
     AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, "&Menu");
     SetMenu(hWnd, hMenu);
     CreateMainWindowText(hWnd);
+}
+void CreateCompareGeneratedImages(HWND hWnd) {
+    RECT rect;
+    GetClientRect(hWnd, &rect);
+
+    // 474 width for a screen
+
+    int widthScreens = 474;
+
+    int endOffirstScreen = widthScreens * 1;
+    int endOfSecondScreen = widthScreens * 2;
+    int endOfThirdScreen = widthScreens * 3;
+
+    // path of static generated image
+    CreateWindow("BUTTON", "Select image for static", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        5, yImagesPos, (int)(endOffirstScreen / 3), 30, hWnd, (HMENU)ID_SELECT_INPUT_STATIC, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL | ES_READONLY,
+        (int)(endOffirstScreen / 3) + 5, yImagesPos, (int)(2 * endOffirstScreen / 3) - 10, 30, hWnd, (HMENU)ID_INPUT_STATIC_PATH_DISPLAY, hInst, NULL);
+
+    // path of dinamic generated image
+    int widthGray = (int)(endOffirstScreen / 3);
+    int startGray = endOffirstScreen + 10;
+    CreateWindow("BUTTON", "Select image for dinamic", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        startGray, yImagesPos, widthGray, 30, hWnd, (HMENU)ID_SELECT_INPUT_DINAMIC, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL | ES_READONLY,
+        startGray + widthGray, yImagesPos, (int)(2 * widthScreens / 3) - 10, 30, hWnd, (HMENU)ID_INPUT_DINAMIC_PATH_DISPLAY, hInst, NULL);
+
+
+    // creation of selection tests
+
+    
+
+    // creation of logs
+
+    CreateWindow("STATIC", "Logger", WS_VISIBLE | WS_CHILD,
+        5, yExecution, 100, 20, hWnd, (HMENU)ID_LOG_WINDOW_IMAGES_LABEL, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_AUTOVSCROLL | ES_MULTILINE | ES_READONLY,
+        5, yExecution + 20, widthScreens, 110, hWnd, (HMENU)ID_LOG_WINDOW_IMAGES, hInst, NULL);
+
+    CreateWindow("BUTTON", "Clear Logs", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        1200, 650, 200, 30, hWnd, (HMENU)ID_CLEAR_LOGS_IMAGES, hInst, NULL);
+
+    // run tests
+
+    CreateWindow("BUTTON", "Run tests", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        1200, yComboBox, 200, 30, hWnd, (HMENU)ID_RUN_COMPARE_IMAGES, hInst, NULL);
+
+
+    CreateWindow("STATIC", "BMP Header Info",
+        WS_CHILD | WS_VISIBLE | ES_LEFT,
+        350 + 120, yComboBox, 130, 20,
+        hWnd, (HMENU)ID_BMP_HEADER_LABEL, hInst, NULL);
+
+    CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_AUTOVSCROLL | ES_MULTILINE | ES_READONLY,
+        480 + 120, yComboBox, 400, 60, hWnd, (HMENU)ID_BMP_HEADER, hInst, NULL);
 }
 
 void CreateMyPerformances(HWND hWnd) 

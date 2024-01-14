@@ -7,9 +7,14 @@
 
 typedef struct EvaluateInput{
 	wstring imagePath;
+	wstring static_imagePath;
+	wstring dinamic_imagePath;
 	wstring greyPath;
 	wstring inversePath;
 	wstring imageName;
+	wstring staticName;
+	wstring dinamicName;
+
 	string typeOfTest;
 	DWORD testType;
 
@@ -18,6 +23,8 @@ typedef struct EvaluateInput{
 	void getTypeOfTest(HWND hWnd);
 	void adjustPaths(DirFileHandler&);
 	void setImageName();
+	void setStaticImageName();
+	void setDinamicImageName();
 
 	BOOL extractBitmapInfo(bHeaders&);
 } evInput;
@@ -37,6 +44,7 @@ public:
 	EvaluatePerformancesManager(HWND, HINSTANCE, evInput, ShowImages&);
 
 	void execute() override;
+	void startComparing();
 	void displayBitmapHeaders();
 	void runTests();
 	void invokeTest(evPerfResults&, cmdInfo&, DWORD);

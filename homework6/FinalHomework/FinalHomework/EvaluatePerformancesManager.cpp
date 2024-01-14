@@ -9,7 +9,11 @@ EvaluatePerformancesManager::EvaluatePerformancesManager(
 	this->bitmapInput.adjustPaths(this->fileHandler);
 	this->bitmapInput.setImageName();
 }
+void EvaluatePerformancesManager::startComparing() {
+	this->LOG(this->logger, "Am aj sa vedem timpii!", TRUE);
+	
 
+}
 
 void EvaluatePerformancesManager::execute()
 {
@@ -168,6 +172,8 @@ BOOL EvaluatePerformancesManager::isInputValid(evInput& input)
 void EvaluateInput::clear()
 {
 	imagePath.clear();
+	static_imagePath.clear();
+	dinamic_imagePath.clear();
 	greyPath.clear();
 	inversePath.clear();
 	typeOfTest.clear();
@@ -247,7 +253,32 @@ void EvaluateInput::setImageName()
 		imageName = imgWithExtension;
 	}
 }
+void EvaluateInput::setStaticImageName() {
+	size_t pos = static_imagePath.find_last_of(L"\\");
+	wstring imgWithExtension = static_imagePath.substr(pos + 1);
 
+	size_t indexDot = imgWithExtension.find(L".");
+
+	if (indexDot != std::wstring::npos) {
+		staticName = imgWithExtension.substr(0, indexDot);
+	}
+	else {
+		staticName = imgWithExtension;
+	}
+}
+void EvaluateInput::setDinamicImageName() {
+	size_t pos = dinamic_imagePath.find_last_of(L"\\");
+	wstring imgWithExtension = dinamic_imagePath.substr(pos + 1);
+
+	size_t indexDot = imgWithExtension.find(L".");
+
+	if (indexDot != std::wstring::npos) {
+		dinamicName = imgWithExtension.substr(0, indexDot);
+	}
+	else {
+		dinamicName = imgWithExtension;
+	}
+}
 
 /**
 * Helper method responsible for extracting the bitmap headers information from the photo
